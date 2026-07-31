@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lt-dev",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-Command", "Set-Location 'C:\\Users\\Dontavius\\Claude projects\\LearningTreehouse'; npm run dev -- --port 3001"],
+      "port": 3001
+    }
+  ]
+}
