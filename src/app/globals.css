@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fff9ed;
+  --foreground: #24352b;
+  --pine: #285842;
+  --pine-dark: #173b2b;
+  --leaf: #5e9c60;
+  --sun: #f3b84d;
+  --bark: #8a5d3b;
+  --paper: #fffdf8;
+  --ink-soft: #4e6254;
 }
 
 @theme inline {
@@ -12,15 +19,301 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
 }
 
 body {
-  background: var(--background);
+  margin: 0;
+  background:
+    radial-gradient(circle at 9% 2%, rgb(255 255 255 / 82%) 0 10%, transparent 28%),
+    linear-gradient(155deg, #fff8e7 0%, #e8f3d8 100%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+a:focus-visible {
+  outline: 4px solid #1f6bb0;
+  outline-offset: 5px;
+}
+
+.treehouse-home {
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto;
+  padding: clamp(2.5rem, 7vw, 5.5rem) 0 4rem;
+}
+
+.treehouse-intro {
+  max-width: 43rem;
+  margin-bottom: clamp(2.25rem, 5vw, 4rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.65rem;
+  color: var(--pine);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2,
+.book-title {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+h1 {
+  max-width: 12ch;
+  margin-bottom: 1rem;
+  color: var(--pine-dark);
+  font-size: clamp(2.8rem, 8vw, 5.7rem);
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  line-height: 0.94;
+}
+
+.intro-copy {
+  max-width: 37rem;
+  color: var(--ink-soft);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.65;
+}
+
+.book-shelf {
+  padding: clamp(1.2rem, 3vw, 2.25rem);
+  border: 1px solid rgb(92 123 76 / 25%);
+  border-radius: 1.75rem;
+  background: rgb(255 253 248 / 72%);
+  box-shadow: 0 1rem 2.5rem rgb(70 80 48 / 10%);
+}
+
+.shelf-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+}
+
+.shelf-heading h2 {
+  margin-bottom: 0;
+  color: var(--pine-dark);
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.shelf-count {
+  margin-bottom: 0.15rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.book-card {
+  display: grid;
+  min-height: 100%;
+  overflow: hidden;
+  border: 1px solid rgb(54 91 57 / 20%);
+  border-radius: 1.15rem;
+  background: var(--paper);
+  box-shadow: 0 0.5rem 1.1rem rgb(68 72 45 / 8%);
+}
+
+.book-card-link {
+  color: inherit;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.book-card-link:hover {
+  transform: translateY(-0.3rem);
+  box-shadow: 0 1rem 1.8rem rgb(47 84 53 / 18%);
+}
+
+.book-card-preview {
+  opacity: 0.88;
+}
+
+.book-cover {
+  display: grid;
+  position: relative;
+  min-height: 12.5rem;
+  padding: 1rem;
+  overflow: hidden;
+  color: #fffdf4;
+  text-align: center;
+  place-content: center;
+  isolation: isolate;
+}
+
+.book-cover::before,
+.book-cover::after {
+  position: absolute;
+  z-index: -1;
+  border-radius: 999px;
+  content: "";
+}
+
+.book-cover::before {
+  width: 13rem;
+  height: 13rem;
+  background: rgb(255 255 255 / 14%);
+  top: -5rem;
+  right: -3rem;
+}
+
+.book-cover::after {
+  width: 8rem;
+  height: 8rem;
+  border: 1.2rem solid rgb(255 255 255 / 12%);
+  bottom: -3rem;
+  left: -2rem;
+}
+
+.book-cover-1 {
+  background: linear-gradient(145deg, #245f49, #62a466);
+}
+
+.book-cover-2 {
+  background: linear-gradient(145deg, #435891, #809cd0);
+}
+
+.book-cover-3 {
+  background: linear-gradient(145deg, #a65054, #dc8a72);
+}
+
+.book-cover-4 {
+  background: linear-gradient(145deg, #704a88, #b483bb);
+}
+
+.book-cover-stars {
+  margin-bottom: 0.65rem;
+  color: #ffe18b;
+  font-size: 0.85rem;
+  letter-spacing: 0.45em;
+}
+
+.book-cover-title {
+  max-width: 14ch;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  font-weight: 700;
+  line-height: 1.05;
+  text-shadow: 0 2px 0 rgb(0 0 0 / 12%);
+}
+
+.book-cover-mark {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.65rem;
+  color: rgb(255 255 255 / 72%);
+  font-size: 1.35rem;
+}
+
+.book-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.15rem;
+}
+
+.book-status,
+.book-preview-label {
+  color: var(--pine);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.book-status {
+  margin-bottom: 0.55rem;
+}
+
+.book-title {
+  margin-bottom: 0.6rem;
+  color: var(--pine-dark);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.book-detail {
+  margin-bottom: 1.15rem;
+  color: var(--ink-soft);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.book-action,
+.book-preview-label {
+  margin-top: auto;
+}
+
+.book-action {
+  color: var(--pine-dark);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.book-action span {
+  display: inline-block;
+  margin-left: 0.2rem;
+  transition: transform 160ms ease;
+}
+
+.book-card-link:hover .book-action span {
+  transform: translateX(0.2rem);
+}
+
+.book-preview-label {
+  color: var(--bark);
+}
+
+@media (max-width: 36rem) {
+  .treehouse-home {
+    width: min(100% - 1.25rem, 72rem);
+    padding-top: 2.5rem;
+  }
+
+  .shelf-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .shelf-count {
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -124,3 +124,108 @@ Rollback available: Yes — `git revert 18dace3` restores the packet-000 scaffol
 Next recommended packet: `packet-002-build-mock-book-content.md`.
 
 ---
+
+Date: 2026-07-31
+Packet: packet-002-build-mock-book-content
+Approved by: Dontavius (2026-07-31)
+
+Changed:
+- Added the local-only mock book fixture at `src/data/books.ts`: one complete Mary fixture with six pages and three reader-only placeholder books.
+- Corrected fixture attribution; the correction was independently verified.
+
+Files touched:
+- `src/data/books.ts` — intentionally untracked, uncommitted, and unpushed until Vercel Deployment Protection is enabled.
+- `docs/CHANGELOG.md`
+
+Tests run:
+- `npm run lint` — PASS
+- `npm run build` — PASS
+- `git diff --check` — PASS
+- Independent verification — PASS: fixture scope, page count, placeholder mode, and corrected attribution confirmed.
+
+Result: Complete locally only; no deployment occurred.
+
+Known issues:
+- Vercel Deployment Protection remains required before committing or pushing real book content.
+
+Rollback available: Yes — delete the untracked `src/data/books.ts` source file.
+
+Next recommended packet: `packet-003`.
+
+---
+
+Date: 2026-07-31
+Packet: packet-003-build-book-shelf
+Approved by: Dontavius (2026-07-31)
+
+Changed:
+- Built the local-only book-shelf experience at the home route using the existing mock book fixture.
+- Added the reusable `BookShelf` presentation component and replaced the starter home page with the shelf.
+- Added responsive, reduced-motion-aware shelf styling.
+- Full books expose a local link to `/books/{bookId}`; reader-only books are clearly shown as non-interactive previews. The reader route itself is intentionally deferred to `packet-004`.
+
+Files touched:
+- `src/app/page.tsx` — local home-route composition.
+- `src/app/globals.css` — shelf and book-card styling.
+- `src/components/book-shelf.tsx` — accessible book shelf and card rendering.
+- `docs/CHANGELOG.md`
+
+Tests run:
+- `npm run lint` — PASS.
+- `npm run build` — PASS.
+- `git diff --check` — PASS.
+- Local `GET /` — PASS: the shelf renders locally with its available and reader-only book states.
+
+Result: Complete locally only. The local app is testable at `http://localhost:3000/`; no source files were staged, committed, pushed, or deployed.
+
+Known issues:
+- `src/data/books.ts` from `packet-002` remains intentionally local, untracked, and unpushed pending Vercel Deployment Protection.
+- The full-book reader destination (`/books/{bookId}`) is intentionally not implemented until `packet-004`.
+
+Rollback available: Yes — discard only the P003 local source changes to return to the prior scaffold/home experience; preserve the separate local P002 fixture unless that packet is also being rolled back.
+
+Next recommended packet: `packet-004` — build the reader route before testing a full book link.
+
+---
+
+Date: 2026-07-31
+Packet: packet-004-build-book-reader
+Approved by: Codex under the Light Governance Tier (2026-07-31)
+
+Changed:
+- Added `/books/[bookId]` as a server route resolving a local book by ID; unknown or
+  reader-only book IDs reject via `notFound()`.
+- Added `BookReader`, a client component: in-memory page navigation (Previous/Next,
+  bounded to the book's page count), read-along text, page-scoped word list, and a
+  clearly-labeled fake record/playback control that never touches `MediaRecorder`,
+  never requests microphone permission, and persists nothing.
+
+Files touched:
+- `src/app/books/[bookId]/page.tsx`
+- `src/components/book-reader.tsx`
+- `docs/CHANGELOG.md`
+
+Tests run:
+- `npm run lint` — PASS
+- `npm run build` — PASS
+- Local navigation shelf → Mary → page 1 through 6 → back to page 1 — PASS, bounds held
+- Fake record control toggled twice — label changes, no permission prompt, no writes
+- Unknown and reader-only book routes — both rejected without a runtime error
+
+Result: Complete locally only. Not staged, committed, or deployed as of this entry —
+Vercel Deployment Protection remains the release guard (see packet-004's Release Guard
+section). This CHANGELOG entry and the underlying files are committed together in the
+same commit that closes this out.
+
+Known issues:
+- `src/data/books.ts` (packet-002) remains the only content source; Vercel Deployment
+  Protection still required before any of packets 002-004 are pushed live.
+- No independent verifier is recorded by name for packet-003 or packet-004 in this log.
+  Worth tightening going forward — the light tier still requires builder ≠ verifier.
+
+Rollback available: Yes — remove `src/app/books/[bookId]/page.tsx` and
+`src/components/book-reader.tsx`; shelf remains available on its own.
+
+Next recommended packet: `packet-005-build-vocabulary-practice.md`.
+
+---
