@@ -60,21 +60,28 @@ DDA until confirmation is given.
 
 ---
 
-## Closeout — Every Session
+## Closeout — At Feature Boundaries, Not Every Session
 
-Before ending any session, report:
+LT runs a light governance tier (locked 2026-07-31, see `docs/BUILD_RULES.md`). There is
+no per-packet closeout report and no per-packet vault round-trip. Keep moving between
+packets.
 
-1. What was completed (specific files changed, screens working)
-2. What was not completed and why
-3. Which STATUS.md checklist items can now be marked done
-4. New troubleshooting entries to log (symptom, what failed, what fixed it, rule forward)
-5. New locked decisions to add to DECISION_LOG.md
-6. Current packet status (In Progress / Complete / Corrected / Blocked)
-7. Recommended next packet or action
-8. Anything that should not carry into the next session without review
+**When a whole feature works** (e.g. "the reader screen works", not "types compile"):
 
-Do not auto-edit vault files.
-Report only — Dontavius applies updates in the FounderOS vault chat.
+1. What was built — specific files, screens working
+2. What was tested and the actual result
+3. What is known-broken or deliberately deferred
+4. Whether a reusable insight came out of it worth a Trace Card
+5. Recommended next feature
+
+Write that to `BUILD_DIARY/YYYY-MM-DD.md` in the vault.
+
+**When something fails three times**, log it in `TROUBLESHOOTING_LOG.md` before the fourth
+attempt — symptom, what was tried, why each failed. Append the fix when found. Carry both
+into the day's `BUILD_DIARY` entry.
+
+**Escalate to Dontavius only for:** a real product or content decision, anything touching
+child safety or voice recordings, money, or public launch.
 
 ---
 

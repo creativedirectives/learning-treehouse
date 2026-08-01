@@ -36,6 +36,55 @@ Rules:
 
 ---
 
+## Governance Tier — Light (locked 2026-07-31)
+
+Learning Treehouse runs lighter than PreTenPlay. LT is a greenfield app with one repo, no users, no device proof, and no recordings — the cost of a wrong move is `git revert`. PTP's ceremony is not warranted here.
+
+**The loop:**
+
+```
+Dontavius says what to build
+  -> Codex writes the packet (scope + forbidden + test steps) in packets/
+  -> Implementer builds it            [must not be Codex]
+  -> Codex verifies against the packet
+  -> repeat until the feature works
+  -> feature done: BUILD_DIARY entry (+ Trace Card if there's a reusable insight)
+```
+
+**Dropped:** a FounderOS-drafted shell step, per-packet founder approval, per-packet vault round-trips. Codex scoping a packet is sufficient authorization to build it.
+
+**Kept, non-negotiable:**
+- Every locked decision, above all the book-centered architecture lock in `AGENTS.md`
+- A packet file per unit of work — a working note, not a gate
+- **Builder ≠ verifier.** Whoever scopes or builds does not certify. This is the one rule that catches errors rather than recording them.
+
+**Dontavius enters only for:** a real product or content decision, anything touching child safety or voice recordings, money, or public launch.
+
+**Re-tighten to full ceremony when any of these is true:** real users touch the app, child voice recordings exist, money is involved, or something breaks that a packet gate would have caught.
+
+---
+
+## Recording — At Feature Boundaries And At Failure
+
+The light tier drops paperwork, not the record. Log at the two moments it pays for itself.
+
+**When a feature is done** — the whole feature, not each packet (e.g. "the reader screen works"):
+- Write a closeout entry in the vault at `BUILD_DIARY/YYYY-MM-DD.md`: what was built, which files, what was tested, what is known-broken or deferred.
+- If the work produced a reusable insight, capture a Trace Card too. Don't manufacture one when there isn't a real lesson.
+
+**When a feature fails three times** — three genuine attempts, not three typos:
+1. **Before attempting a fourth**, log it: date, symptom, what was tried, why each attempt failed.
+2. **When fixed**, append how it was fixed and the rule to carry forward.
+3. Carry both into that day's `BUILD_DIARY` entry.
+
+One failure is normal, two is unlucky, three means the mental model is wrong — and guessing again costs more than stopping to write it down.
+
+Vault paths:
+`F:\FounderOS_Vault\05_SHARED_FRAMEWORKS\Projects\LearningTreehouse\TROUBLESHOOTING_LOG.md`
+`F:\FounderOS_Vault\05_SHARED_FRAMEWORKS\Projects\LearningTreehouse\BUILD_DIARY\`
+
+---
+
 ## Before Editing — AI Must Read and Report
 
 AI must read:
