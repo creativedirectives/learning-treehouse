@@ -229,3 +229,81 @@ Rollback available: Yes — remove `src/app/books/[bookId]/page.tsx` and
 Next recommended packet: `packet-005-build-vocabulary-practice.md`.
 
 ---
+
+Date: 2026-08-01
+Packet: none — cross-cutting infrastructure change, authorized directly by Dontavius
+Approved by: Dontavius (2026-08-01, Executive Overseer vault chat)
+
+Changed:
+- **Mobile-primary platform pivot.** A native mobile app (Expo/React Native) was
+  built in a separate, standalone repo (`LearningTreehouseMobile`) without an upfront
+  vault decision. Discovered mid-session; Dontavius reviewed and approved the pivot:
+  mobile is now the primary product target, web is secondary. Full incident and
+  decision record: vault `VAULT_INTEGRITY.md` and `DECISION_LOG.md` → Process Decisions.
+- **Repo restructured into an npm-workspaces monorepo:**
+  - `apps/web/` — the existing Next.js app, moved intact (all history preserved via
+    `git mv`)
+  - `apps/mobile/` — the mobile app, brought in from the standalone repo
+  - `packages/book-model/` — the book/page/word/activity contract and the Mary
+    fixture, now a single shared source instead of two independently-copied
+    versions (web's `src/types/book.ts` + `src/data/books.ts`, mobile's
+    `src/domain/book.ts` + `src/content/books.ts` were near-duplicates of each other)
+  - Root `package.json` declares workspaces; one root `package-lock.json` replaces
+    the two independent lockfiles
+  - `apps/web/next.config.ts` gained `transpilePackages` for the shared package;
+    `apps/mobile/metro.config.js` (new) gained `watchFolders`/`nodeModulesPaths` so
+    Metro can resolve it
+- `packets/packet-m000-native-reading-slice.md` moved into this repo's `packets/`
+  folder (previously only in the standalone repo). Amended: Status Draft → Approved
+  with a recorded retroactive-approval circumstance; file paths and two
+  now-superseded Allowed Changes items updated for the monorepo layout — see the
+  packet's own Amendment section.
+- `AGENTS.md`, `docs/AGENT_RULES.md`, `docs/BUILD_RULES.md`, `CLAUDE.md` updated:
+  monorepo structure, mobile-primary framing, and a new "Platform / Architecture
+  Pivot" escalation rule requiring Dontavius's approval before any future platform,
+  framework, or repo change — before it happens, not after.
+
+Files touched:
+- Every file under the old `src/`, `public/`, and root config files (moved via
+  `git mv` into `apps/web/`)
+- New: `packages/book-model/` (4 files), `apps/mobile/` (copied from the standalone
+  repo, two duplicated domain files deleted, imports repointed), `apps/mobile/metro.config.js`
+- `package.json` (root, new), `.gitignore` (consolidated for monorepo-wide patterns)
+- `packets/packet-m000-native-reading-slice.md`, `AGENTS.md`, `docs/AGENT_RULES.md`,
+  `docs/BUILD_RULES.md`, `CLAUDE.md`, this file
+
+Tests run:
+- `npm install` at repo root — PASS (407 packages added across 3 workspaces)
+- `npm run build --workspace apps/web` — PASS (routes `/`, `/_not-found`,
+  `/books/[bookId]` all present). Noisy but non-fatal `pnpm`-related stderr from
+  Next.js's own `@next/swc` lockfile self-heal probe — confirmed harmless (exit 0,
+  correct output, one lockfile on disk); worth silencing later, not a defect today.
+- `npm run lint --workspace apps/web` — PASS, no output
+- `cd apps/mobile && npx tsc --noEmit` — PASS, no output
+- `cd packages/book-model && npx tsc --noEmit` — PASS, no output (standalone check)
+- Mobile device/simulator speech test — NOT RUN, remains open per `packet-m000`
+
+Result: Complete for the restructuring itself. `packet-m000`'s own exit criteria
+(device speech proof, independent verification) remain open.
+
+Known issues:
+- **Vercel Root Directory must change from `.` to `apps/web`**, or the next push to
+  `main` will fail to build on Vercel. This requires the Vercel dashboard (Project →
+  Settings → Root Directory) — outside what this session can do. `HV REQUIRED`.
+- The `pnpm`-probe stderr noise above is cosmetic; consider investigating later.
+- `npm audit` reports vulnerabilities across the larger dependency set (mobile adds
+  Expo/React Native); not addressed here, same as the pre-existing web-only advisories
+  noted in the `packet-000` entry.
+- The original standalone `LearningTreehouseMobile` folder was renamed, not deleted,
+  as a reversible safety measure — see `BUILD_DIARY` for the exact path.
+
+Rollback available: Yes, but nontrivial — this is a repo-wide restructuring, not a
+single feature. See the Rollback Plan pattern in `packet-m000`'s Amendment section for
+the mobile-specific piece; the web move is a pure `git mv` and fully reversible via
+`git revert` of this commit.
+
+Next recommended packet: resolve the Vercel Root Directory HV REQUIRED item, then
+either `packet-005-build-vocabulary-practice.md` (web) or a scoped mobile packet
+covering the device speech proof for `packet-m000`.
+
+---

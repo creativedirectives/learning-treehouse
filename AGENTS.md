@@ -27,6 +27,38 @@ Open Treehouse → Choose book → Read/listen to page → Record own reading �
 Tap vocabulary word → Mini spelling/comprehension check → Earn Treehouse reward →
 See reading partner's new page
 
+**Platform priority (locked 2026-08-01):** the native mobile app is the primary
+product target — it is the moat. The web app is a secondary/reference surface: it
+keeps working and may keep getting packets, but mobile gets priority when the two
+compete for attention. See `DECISION_LOG.md` → Process Decisions for the full record.
+
+---
+
+## Repo Structure — Monorepo (locked 2026-08-01)
+
+This repo holds both platform targets and their one shared content model:
+
+```
+apps/web/            Next.js app (App Router, TS strict, Tailwind) — secondary surface
+apps/mobile/          Expo app (React Native, TS strict) — primary product target
+packages/book-model/  THE single source of book/page/word/activity types and the
+                       Mary Had a Little Lamb + reader-only fixture content.
+                       Both apps import from here. Neither app may keep its own
+                       copy of the book contract or fixture.
+docs/, packets/, audits/   Repo-wide governance — not nested per-app
+```
+
+Root `package.json` declares npm workspaces (`apps/*`, `packages/*`). One root
+`package-lock.json` covers all three packages — do not create a per-app lockfile.
+
+`apps/web/next.config.ts` lists `@learning-treehouse/book-model` under
+`transpilePackages`, since the package ships raw TypeScript with no build step.
+`apps/mobile/metro.config.js` adds `watchFolders`/`nodeModulesPaths` so Metro can
+resolve the same package — see that file's comment for why.
+
+**Before adding a third book, activity type, or platform surface:** it belongs in
+`packages/book-model`, imported by whichever app(s) need it — never copied.
+
 ---
 
 ## Architecture Lock — NON-NEGOTIABLE
@@ -117,6 +149,30 @@ re-approved.
 
 ---
 
+## Platform / Architecture Pivot — Escalate BEFORE It Happens
+
+Locked 2026-08-01, after a mobile app was fully built in a separate, ungoverned repo
+before the decision to build it was ever brought to Dontavius or recorded anywhere.
+The work itself was disciplined — it just never should have started without this step.
+Full incident: `F:\FounderOS_Vault\05_SHARED_FRAMEWORKS\VAULT_INTEGRITY.md`.
+
+**Stop and escalate to Dontavius before writing any code if the work involves any of:**
+
+1. Starting an app on a new platform or framework for a product that already has one
+2. Creating a new repo or workspace for a project that already has one
+3. Anything that could make already-committed or already-approved work obsolete
+4. Any change to which surface is the flagship/primary target for a product
+
+One sentence is enough to escalate: what's changing, and why. Wait for a yes before
+touching a filesystem.
+
+**If this is discovered after the fact** (code already exists, no prior decision on
+record): do not delete or hide it. Freeze it — no further building — until Dontavius
+makes the actual call, it is logged in `DECISION_LOG.md`, and the new repo/surface is
+brought into at least minimal vault governance.
+
+---
+
 ## RAIVL Core — Not Assumed
 
 Learning Treehouse is standalone for now (Option C, vault DECISION_LOG 2026-07-28).
@@ -158,7 +214,8 @@ framing, not an engineering target.
 4. Modify any file not listed in the active packet
 5. Install packages not approved in the active packet
 6. Publish, email, export, or trigger external services
-7. Create GitHub repos, deploy, or change hosting settings without explicit approval
+7. Create GitHub repos, new platform targets/apps, or change hosting settings without
+   explicit approval — see "Platform / Architecture Pivot" above
 8. Touch the FounderOS vault at `F:\FounderOS_Vault\` — this repo's lane reports to the
    vault, it does not write to it
 9. `git add .` or `git add -A` — stage by exact filename only
@@ -172,7 +229,9 @@ This repo is **Lane 1 — Product Build**.
 
 | Content type | Correct lane |
 |---|---|
-| Next.js / web implementation | Lane 1 — this repo |
+| Mobile (Expo) implementation — `apps/mobile` | Lane 1 — this repo, primary surface |
+| Web (Next.js) implementation — `apps/web` | Lane 1 — this repo, secondary surface |
+| Shared book model — `packages/book-model` | Lane 1 — this repo, imported by both apps |
 | Vault docs, packet status, project tracking | Lane 2 — FounderOS vault chat |
 | RAIVL architecture / mastery engine questions | RAIVL project vault docs |
 

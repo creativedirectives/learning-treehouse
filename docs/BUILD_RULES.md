@@ -2,15 +2,25 @@
 
 ## Stack
 
-Locked 2026-07-31 (vault `DECISION_LOG.md` → Infrastructure Decisions):
+Web locked 2026-07-31, mobile added 2026-08-01 as the primary platform target (vault
+`DECISION_LOG.md` → Infrastructure Decisions and → Process Decisions):
 
-- Next.js (App Router) + React + TypeScript (strict) + Tailwind CSS
-- `src/` directory layout, `@/*` import alias
+- **Repo shape:** npm-workspaces monorepo — `apps/web`, `apps/mobile`,
+  `packages/book-model`. See `AGENTS.md` → Repo Structure for the full layout.
+- **apps/web:** Next.js (App Router) + React + TypeScript (strict) + Tailwind CSS.
+  Secondary/reference surface.
+- **apps/mobile:** Expo + React Native + TypeScript (strict). Primary product target.
+- **packages/book-model:** the one shared book/page/word/activity contract and the
+  Mary fixture. Both apps import it — never copy it.
+- `src/` directory layout inside each app, `@/*` import alias inside `apps/web` only
 - Local-first MVP — no accounts, no auth, no cloud sync, no analytics
-- Hosting: Vercel under the Creative Directives team, private/preview pipeline
+- Hosting: Vercel under the Creative Directives team, private/preview pipeline, for
+  `apps/web` only. Mobile has no store/publishing pipeline yet — see the
+  "Do Not Build Yet" list in `AGENTS.md`.
 
-Do not add a database, ORM, auth provider, or analytics package. Do not swap the
-framework or CSS approach without a packet and founder approval.
+Do not add a database, ORM, auth provider, or analytics package. Do not swap a
+framework or CSS approach without a packet and founder approval. Do not add a third
+platform target without going through "Platform / Architecture Pivot" in `AGENTS.md`.
 
 ---
 
@@ -141,18 +151,28 @@ Report:
 
 ## Verification Commands
 
-Run these before claiming a packet complete:
+Run these before claiming a packet complete. All from the repo root unless noted.
 
+**apps/web:**
 ```
-npm run build
+npm run build --workspace apps/web
+npm run lint --workspace apps/web
 ```
 
+**apps/mobile** (no device/simulator in most sessions — typecheck is the floor, not
+the ceiling; device/simulator behavior stays open until someone with a device runs it):
 ```
-npm run lint
+cd apps/mobile && npx tsc --noEmit
+```
+
+**packages/book-model** (optional standalone check when editing the shared contract):
+```
+cd packages/book-model && npx tsc --noEmit
 ```
 
 Paste the real output. If the report says complete but the files or the build
-disagree, the files win.
+disagree, the files win. A green typecheck is not a substitute for the device test
+a mobile packet actually requires — say plainly which one you ran.
 
 ---
 

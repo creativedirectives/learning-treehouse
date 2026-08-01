@@ -1,5 +1,6 @@
+import { books } from "@learning-treehouse/book-model";
+
 import { BookShelf } from "@/components/book-shelf";
-import { books } from "@/data/books";
 
 export default function Home() {
   return (

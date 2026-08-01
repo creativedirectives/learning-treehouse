@@ -89,7 +89,8 @@ silently adopted.
 6. Introduce a branch-centered structure or per-activity content libraries
 7. Install packages not approved in the active packet
 8. Publish, email, export, or trigger external services
-9. Create GitHub repos or change hosting settings without explicit approval
+9. Create GitHub repos, new platform targets/apps, or change hosting settings without
+   explicit approval — see `AGENTS.md` → Platform / Architecture Pivot
 10. Write to the FounderOS vault at `F:\FounderOS_Vault\`
 11. `git add .` or `git add -A` — stage by exact filename only
 12. Add accounts, auth, cloud sync, or analytics

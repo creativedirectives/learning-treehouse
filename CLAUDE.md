@@ -89,6 +89,11 @@ child safety or voice recordings, money, or public launch.
 
 - DDA by default — do not build from vague goals
 - Work from approved packets only
+- **Mobile (`apps/mobile`) is the primary product target; web (`apps/web`) is
+  secondary.** Both import the one shared contract/content from
+  `packages/book-model` — never duplicate it. See `AGENTS.md` → Repo Structure.
+- Starting a new platform, framework, or repo requires Dontavius's approval
+  **before** any code is written — see `AGENTS.md` → Platform / Architecture Pivot
 - **Book-centered architecture is locked.** Shelf → choose a book → read the book →
   complete book-powered activities → earn Treehouse growth. Never replace this with
   a branch-centered architecture without an explicit new founder decision.

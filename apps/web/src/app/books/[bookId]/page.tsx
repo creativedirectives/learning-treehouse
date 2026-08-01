@@ -1,6 +1,7 @@
-import { BookReader } from "@/components/book-reader";
-import { getBookById } from "@/data/books";
+import { getBookById } from "@learning-treehouse/book-model";
 import { notFound } from "next/navigation";
+
+import { BookReader } from "@/components/book-reader";
 
 type BookPageProps = {
   params: Promise<{ bookId: string }>;

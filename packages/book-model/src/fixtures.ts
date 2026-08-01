@@ -1,4 +1,4 @@
-import type { Book, BookId } from "@/types/book";
+import type { Book, BookId } from "./book";
 
 const maryHadALittleLamb: Book = {
   id: "mary-had-a-little-lamb",

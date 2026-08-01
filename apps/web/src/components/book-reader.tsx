@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import type { Book } from "@/types/book";
+import type { Book } from "@learning-treehouse/book-model";
 
 type BookReaderProps = {
   book: Book;

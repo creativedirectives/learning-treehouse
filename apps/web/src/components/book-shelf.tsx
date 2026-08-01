@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { Book } from "@/types/book";
+import type { Book } from "@learning-treehouse/book-model";
 
 type BookShelfProps = {
   readonly books: readonly Book[];
