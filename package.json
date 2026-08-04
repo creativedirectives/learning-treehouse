@@ -10,5 +10,13 @@
     "build:web": "npm run build --workspace apps/web",
     "lint:web": "npm run lint --workspace apps/web",
     "start:mobile": "npm run start --workspace apps/mobile"
+  },
+  "devDependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "overrides": {
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }

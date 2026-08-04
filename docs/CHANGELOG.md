@@ -24,6 +24,111 @@ Next recommended packet:
 ---
 
 Date: 2026-08-04
+Packet: packet-m001-align-expo-go-sdk; packet-m002-fix-sdk54-metro-resolution; packet-m006-stabilize-monorepo-dependency-layout
+Approved by: Dontavius (2026-08-01 and 2026-08-04)
+
+Changed:
+- Aligned the mobile app to Expo SDK 54 for the current Expo Go client.
+- Removed obsolete manual Metro monorepo resolver overrides and enabled Expo SDK 54 autolinking module resolution.
+- Stabilized npm workspace dependency layout with nested install strategy, root React/React Native overrides, web React alignment, and a refreshed lockfile.
+
+Files touched:
+- `.npmrc`
+- `apps/mobile/package.json`
+- `apps/mobile/app.json`
+- `apps/mobile/metro.config.js`
+- `apps/web/package.json`
+- `package.json`
+- `package-lock.json`
+- `packets/packet-m001-align-expo-go-sdk.md`
+- `packets/packet-m002-fix-sdk54-metro-resolution.md`
+- `packets/packet-m006-stabilize-monorepo-dependency-layout.md`
+- `docs/CHANGELOG.md`
+
+Tests run:
+- `cd apps/mobile && npx expo-doctor` - PASS: 18/18 checks.
+- `cd apps/mobile && npx tsc --noEmit` - PASS.
+- `cd packages/book-model && npx tsc --noEmit` - PASS.
+- `npm run lint:web` - PASS.
+- `npm run build:web` - PASS.
+- `git diff --check` - PASS with line-ending warnings only; no whitespace errors.
+- Physical Expo Go check by Dontavius - PASS: app loads on another phone.
+
+Result: Complete.
+
+Known issues:
+- No push or deployment occurred.
+- Vercel deployment protection and web root-directory maintenance remain separate web operations.
+
+Rollback available: Yes - revert the stabilization commit and rerun install plus the checks above.
+
+Next recommended packet: continue mobile-only practice work; do not resume web feature work unless explicitly requested.
+
+---
+
+Date: 2026-08-04
+Packet: packet-m003-fix-inline-word-help; packet-m004-expand-inline-word-help
+Approved by: Dontavius (2026-08-01)
+
+Changed:
+- Made readable sentence words tappable in the Mary reader.
+- Kept selected vocabulary words visually emphasized while ordinary story words are also tappable.
+- Routed inline word taps through the existing device speech path.
+
+Files touched:
+- `apps/mobile/src/features/reader/book-reader.tsx`
+- `packets/packet-m003-fix-inline-word-help.md`
+- `packets/packet-m004-expand-inline-word-help.md`
+- `docs/CHANGELOG.md`
+
+Tests run:
+- `cd apps/mobile && npx tsc --noEmit` - PASS.
+- `git diff --check` - PASS with line-ending warnings only; no whitespace errors.
+- Physical Expo Go check by Dontavius - PASS: tapped words speak when silent mode is off and do not sound off when silent mode is on.
+
+Result: Complete.
+
+Known issues:
+- No microphone, recording, saved progress, account, cloud, analytics, AI, or separate practice surface was added.
+
+Rollback available: Yes - restore `apps/mobile/src/features/reader/book-reader.tsx` from the prior commit and rerun mobile TypeScript.
+
+Next recommended packet: scope the next book-powered practice packet narrowly.
+
+---
+
+Date: 2026-08-04
+Packet: packet-008-adopt-product-platform-asset-brief; packet-009-record-parent-guided-raivl-spelling-bee-direction
+Approved by: Dontavius (2026-08-01)
+
+Changed:
+- Adopted the Product, Platform, and Asset Brief as required reading.
+- Recorded the parent-guided RAIVL and book-powered Spelling Bee direction without authorizing implementation.
+- Updated the brief's immediate sequence to reflect the verified mobile loop and shelved web work.
+
+Files touched:
+- `CLAUDE.md`
+- `docs/PRODUCT_PLATFORM_AND_ASSET_BRIEF.md`
+- `packets/packet-008-adopt-product-platform-asset-brief.md`
+- `packets/packet-009-record-parent-guided-raivl-spelling-bee-direction.md`
+- `docs/CHANGELOG.md`
+
+Tests run:
+- Documentation scope inspection - PASS.
+- `git diff --check` - PASS with line-ending warnings only; no whitespace errors.
+
+Result: Complete.
+
+Known issues:
+- Future RAIVL Core, Spelling Bee, grade library, custom story service, accounts, child data, and asset intake remain explicitly deferred until dedicated packets.
+
+Rollback available: Yes - revert the documentation commit.
+
+Next recommended packet: continue mobile-only practice work from the book-centered loop.
+
+---
+
+Date: 2026-08-04
 Packet: packet-m005-build-local-parent-guide
 Approved by: Dontavius (2026-08-02)
 

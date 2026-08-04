@@ -39,6 +39,10 @@ Do not begin implementation until startup confirmation is complete.
 
 10. The current active packet file in `packets/`
 
+11. `C:\Users\Dontavius\Claude projects\LearningTreehouse\docs\PRODUCT_PLATFORM_AND_ASSET_BRIEF.md`
+    — product/platform direction, future-roadmap boundaries, and the target asset
+    intake structure
+
 ---
 
 ## Startup Confirmation Required
