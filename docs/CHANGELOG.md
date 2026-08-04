@@ -23,6 +23,41 @@ Next recommended packet:
 
 ---
 
+Date: 2026-08-04
+Packet: packet-m005-build-local-parent-guide
+Approved by: Dontavius (2026-08-02)
+
+Changed:
+- Added a local, adult-facing Parent Guide v0 to the mobile shelf flow.
+- Added a For grown-ups entry on the shelf.
+- Added in-memory navigation between shelf, Parent Guide, and Mary reader.
+- Displayed only existing Mary book-owned practice words and definitions.
+
+Files touched:
+- `apps/mobile/App.tsx`
+- `apps/mobile/src/features/shelf/book-shelf.tsx`
+- `apps/mobile/src/features/parent/parent-guide.tsx`
+- `packets/packet-m005-build-local-parent-guide.md`
+- `docs/CHANGELOG.md`
+
+Tests run:
+- Physical Expo Go navigation check by Dontavius - PASS: Shelf -> For grown-ups -> Parent Guide -> Start reading -> Mary reader -> Back to shelf.
+- Code search for prohibited M005 features/APIs - PASS: no persistence, filesystem/database writes, network requests, analytics, accounts, authentication, PINs, family-member records, microphone, recording, voice playback, speech recognition/scoring, camera, or AI service work found in the touched scope.
+- Allowed-file scope inspection - PASS.
+- `cd apps/mobile && npx tsc --noEmit` - PASS.
+- `git diff --check` - PASS with line-ending warnings only; no whitespace errors.
+
+Result: Complete.
+
+Known issues:
+- The repo still contains other local mobile changes and packet files from the broader mobile sequence. This entry closes M005 only.
+
+Rollback available: Yes - remove the Parent Guide component and the two navigation/entry changes, then run TypeScript and open the shelf in Expo Go.
+
+Next recommended packet: continue the mobile packet sequence; do not resume web feature work unless explicitly requested.
+
+---
+
 Date: 2026-08-03
 Packet: packet-m000-native-reading-slice
 Approved by: Dontavius (mobile-primary pivot approved 2026-08-01; device proof confirmed 2026-08-03)
