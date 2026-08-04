@@ -23,6 +23,40 @@ Next recommended packet:
 
 ---
 
+Date: 2026-08-03
+Packet: packet-m000-native-reading-slice
+Approved by: Dontavius (mobile-primary pivot approved 2026-08-01; device proof confirmed 2026-08-03)
+
+Changed:
+- Closed the native mobile shelf-to-reader-to-word-speech slice.
+- Recorded physical-device proof through Expo Go on a second phone.
+- Confirmed desired silent-mode behavior: words speak when silent mode is off, do not play audible speech when silent mode is on, and speak again after silent mode is turned back off.
+- Independently verified the M000 code boundary in the current repo state.
+
+Files touched:
+- `packets/packet-m000-native-reading-slice.md`
+- `docs/CHANGELOG.md`
+
+Tests run:
+- Second-phone Expo Go test - PASS: app loaded, shelf opened, Mary reader opened, tapped-word speech worked.
+- Silent-mode test - PASS: silent mode suppressed audible tapped-word speech; turning silent mode off restored speech.
+- Code search for prohibited M000 features/APIs - PASS: no microphone, recording, speech recognition, camera, contacts, storage, accounts, analytics, backend/networking, or broad permissions found in the mobile/shared search scope.
+- Speech path inspection - PASS: `expo-speech` is the only speech dependency and `apps/mobile/src/platform/speech.ts` is the only import site.
+- `cd apps/mobile && npx tsc --noEmit` - PASS.
+- `git diff --check` - PASS with line-ending warnings only; no whitespace errors.
+
+Result: Complete.
+
+Known issues:
+- The repo already contains later local mobile work beyond M000. This entry closes M000 behavior and boundaries only; it does not close later packets.
+- Vercel web Root Directory and Deployment Protection remain web maintenance items, not blockers for the mobile M000 closeout.
+
+Rollback available: Yes - see the Rollback Plan in `packets/packet-m000-native-reading-slice.md`.
+
+Next recommended packet: continue mobile work from the already-scoped local mobile packet sequence; do not open new web feature work unless web is explicitly resumed.
+
+---
+
 Date: 2026-07-31
 Packet: packet-000-bootstrap-docs
 Approved by: Dontavius (2026-07-31, Executive Overseer vault chat)

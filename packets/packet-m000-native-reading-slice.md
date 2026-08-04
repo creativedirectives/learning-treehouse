@@ -8,7 +8,7 @@ Date created: 2026-08-01
 
 Project: Learning Treehouse Mobile
 
-Status: Approved — see Amendment below for the circumstance
+Status: Complete
 
 Depends on: Mobile Expo bootstrap exists; no prior mobile feature packet
 
@@ -28,6 +28,30 @@ Dontavius has since approved the mobile-primary pivot this packet was already bu
 against, which constitutes approval of this packet's scope. Status moves to
 `Approved` on that basis — not to `Complete`, since the device speech test (Test
 Step 5-6) and independent verification are still outstanding.
+
+## Closeout — Completed 2026-08-03
+
+`packet-m000` is Complete. Physical-device proof was confirmed through Expo Go on a
+second phone: the app loaded, shelf opened, Mary reader opened, tapped words spoke
+when silent mode was off, tapped words did not play audible speech when silent mode
+was on, and speech worked again after silent mode was turned back off. This matches
+the desired product behavior: tap-to-hear respects the device silent setting.
+
+Independent code verification was performed by Codex from the repo files:
+
+- `expo-speech` is the only speech dependency in `apps/mobile/package.json`.
+- `apps/mobile/src/platform/speech.ts` is the only file importing `expo-speech`.
+- The reader calls the speech adapter from `apps/mobile/src/features/reader/book-reader.tsx`.
+- Search found no prohibited M000 features or APIs in the mobile/shared scope:
+  microphone, recording, speech recognition, camera, contacts, storage, accounts,
+  analytics, backend/networking, or broad permissions.
+- `npx tsc --noEmit` in `apps/mobile` passed.
+- `git diff --check` reported line-ending warnings only, with no whitespace errors.
+
+Known limitation: the current repo already contains later local mobile work beyond
+M000. This closeout verifies that M000's required shelf-to-reader-to-word-speech
+behavior still works and that M000's prohibited feature boundaries remain intact in
+the current repo state; it is not a closeout for later packets.
 
 **Structural changes from consolidating the standalone `LearningTreehouseMobile`
 repo into this repo as `apps/mobile/`, alongside `apps/web/` and a new shared
