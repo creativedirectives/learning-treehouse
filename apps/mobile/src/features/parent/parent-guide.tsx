@@ -5,9 +5,10 @@ type Props = {
   readonly book: Book;
   readonly onBackToShelf: () => void;
   readonly onStartReading: () => void;
+  readonly onStartSpelling: () => void;
 };
 
-export function ParentGuide({ book, onBackToShelf, onStartReading }: Props) {
+export function ParentGuide({ book, onBackToShelf, onStartReading, onStartSpelling }: Props) {
   const practiceWords = book.words.filter((word) => word.vocabulary);
 
   return (
@@ -47,6 +48,15 @@ export function ParentGuide({ book, onBackToShelf, onStartReading }: Props) {
       >
         <Text style={styles.primaryActionText}>Start reading</Text>
       </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Practice spelling words from ${book.title}`}
+        accessibilityHint="Opens a local spelling practice using this book's words."
+        onPress={onStartSpelling}
+        style={({ pressed }) => [styles.secondaryAction, styles.spellingAction, pressed && styles.pressed]}
+      >
+        <Text style={styles.secondaryActionText}>Practice spelling</Text>
+      </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Return to book shelf" onPress={onBackToShelf} style={styles.secondaryAction}>
         <Text style={styles.secondaryActionText}>Return to shelf</Text>
       </Pressable>
@@ -70,6 +80,7 @@ const styles = StyleSheet.create({
   primaryAction: { alignItems: 'center', backgroundColor: '#f3b84d', borderRadius: 24, marginTop: 30, paddingHorizontal: 24, paddingVertical: 15 },
   primaryActionText: { color: '#173b2b', fontSize: 17, fontWeight: '800' },
   secondaryAction: { alignItems: 'center', borderColor: '#285842', borderRadius: 24, borderWidth: 1, marginTop: 12, paddingHorizontal: 24, paddingVertical: 14 },
+  spellingAction: { backgroundColor: '#fff9ed' },
   secondaryActionText: { color: '#285842', fontSize: 16, fontWeight: '800' },
   pressed: { opacity: 0.8 },
 });

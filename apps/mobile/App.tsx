@@ -6,11 +6,12 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 
 import { BookReader } from './src/features/reader/book-reader';
 import { ParentGuide } from './src/features/parent/parent-guide';
+import { SpellingBee } from './src/features/practice/spelling-bee';
 import { BookShelf } from './src/features/shelf/book-shelf';
 
 export default function App() {
   const [openBook, setOpenBook] = useState<Book | null>(null);
-  const [screen, setScreen] = useState<'shelf' | 'parent-guide' | 'reader'>('shelf');
+  const [screen, setScreen] = useState<'shelf' | 'parent-guide' | 'reader' | 'spelling-bee'>('shelf');
   const maryBook = books.find((book) => book.id === 'mary-had-a-little-lamb' && book.availability === 'full');
 
   function openReader(book: Book) {
@@ -23,12 +24,28 @@ export default function App() {
     setScreen('shelf');
   }
 
+  function openSpellingBee(book: Book) {
+    setOpenBook(book);
+    setScreen('spelling-bee');
+  }
+
+  function returnToParentGuide() {
+    setScreen('parent-guide');
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {screen === 'reader' && openBook ? (
-        <BookReader book={openBook} onBackToShelf={returnToShelf} />
+        <BookReader book={openBook} onBackToShelf={returnToShelf} onStartSpelling={() => openSpellingBee(openBook)} />
+      ) : screen === 'spelling-bee' && openBook ? (
+        <SpellingBee book={openBook} onBackToGuide={returnToParentGuide} onBackToShelf={returnToShelf} />
       ) : screen === 'parent-guide' && maryBook ? (
-        <ParentGuide book={maryBook} onBackToShelf={returnToShelf} onStartReading={() => openReader(maryBook)} />
+        <ParentGuide
+          book={maryBook}
+          onBackToShelf={returnToShelf}
+          onStartReading={() => openReader(maryBook)}
+          onStartSpelling={() => openSpellingBee(maryBook)}
+        />
       ) : (
         <BookShelf books={books} onOpenBook={openReader} onOpenParentGuide={() => setScreen('parent-guide')} />
       )}

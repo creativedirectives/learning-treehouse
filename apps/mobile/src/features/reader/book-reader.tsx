@@ -4,13 +4,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { speakWord, stopSpeakingWord } from '../../platform/speech';
 
-type Props = { readonly book: Book; readonly onBackToShelf: () => void; };
+type Props = {
+  readonly book: Book;
+  readonly onBackToShelf: () => void;
+  readonly onStartSpelling: () => void;
+};
 
 function normalizeInlineToken(token: string): string {
   return token.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-export function BookReader({ book, onBackToShelf }: Props) {
+export function BookReader({ book, onBackToShelf, onStartSpelling }: Props) {
   const [pageIndex, setPageIndex] = useState(0);
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
   const [speechStatus, setSpeechStatus] = useState('Tap a word to hear it.');
@@ -82,6 +86,15 @@ export function BookReader({ book, onBackToShelf }: Props) {
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: isFirstPage }} disabled={isFirstPage} onPress={() => moveToPage(pageIndex - 1)} style={({ pressed }) => [styles.previous, isFirstPage && styles.disabled, pressed && !isFirstPage && styles.pressed]}><Text style={styles.previousText}>Previous</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: isLastPage }} disabled={isLastPage} onPress={() => moveToPage(pageIndex + 1)} style={({ pressed }) => [styles.next, isLastPage && styles.disabled, pressed && !isLastPage && styles.pressed]}><Text style={styles.nextText}>Next</Text></Pressable>
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Practice spelling words from ${book.title}`}
+        accessibilityHint="Opens local spelling practice using this book's words."
+        onPress={onStartSpelling}
+        style={({ pressed }) => [styles.spellingAction, pressed && styles.pressed]}
+      >
+        <Text style={styles.spellingActionText}>Practice spelling</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -93,4 +106,5 @@ const styles = StyleSheet.create({
   wordsSection: { marginTop: 28 }, wordsTitle: { color: '#173b2b', fontSize: 22, fontWeight: '800' }, hint: { color: '#4e6254', fontSize: 15, marginTop: 4 }, wordRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 },
   word: { backgroundColor: '#e8f3d8', borderColor: '#a4be79', borderRadius: 18, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }, activeWord: { backgroundColor: '#f3b84d', borderColor: '#b47514' }, wordText: { color: '#285842', fontSize: 18, fontWeight: '800' }, definition: { color: '#4e6254', fontSize: 13, lineHeight: 18, marginTop: 4, maxWidth: 230 }, activeWordText: { color: '#173b2b' }, speechStatus: { color: '#4e6254', fontSize: 14, fontWeight: '600', lineHeight: 20, marginTop: 16 },
   navigation: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 34 }, previous: { borderColor: '#285842', borderRadius: 24, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 13 }, next: { backgroundColor: '#f3b84d', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 13 }, previousText: { color: '#285842', fontSize: 16, fontWeight: '800' }, nextText: { color: '#173b2b', fontSize: 16, fontWeight: '800' }, disabled: { opacity: 0.4 }, pressed: { opacity: 0.78 },
+  spellingAction: { alignItems: 'center', borderColor: '#285842', borderRadius: 24, borderWidth: 1, marginTop: 18, paddingHorizontal: 24, paddingVertical: 14 }, spellingActionText: { color: '#285842', fontSize: 16, fontWeight: '800' },
 });
