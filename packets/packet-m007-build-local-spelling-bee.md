@@ -14,7 +14,7 @@ Approved on: 2026-08-04 (`ok next` after LT repo stability cleanup)
 
 Depends on: M000 through M006 complete.
 
-Status: In Progress
+Status: Complete
 
 Builder and verifier must be different agents.
 
@@ -56,14 +56,19 @@ not yet let a parent and child practice spelling from the same book-owned word s
 
 | # | Deliverable | Status |
 |---|---|---|
-| 1 | Spelling Bee screen renders for Mary from existing vocabulary words | Implemented; verification pending |
-| 2 | Hear-word button uses existing device speech path | Implemented; verification pending |
-| 3 | Typed answer checks locally against normalized book word text | Implemented; verification pending |
-| 4 | Parent Guide opens Spelling Bee | Implemented; verification pending |
-| 5 | Reader opens Spelling Bee | Implemented; verification pending |
+| 1 | Spelling Bee screen renders for Mary from existing vocabulary words | Verified on device |
+| 2 | Hear-word button uses existing device speech path | Verified on device |
+| 3 | Typed answer checks locally against normalized book word text | Verified on device |
+| 4 | Parent Guide opens Spelling Bee | Verified on device |
+| 5 | Reader opens Spelling Bee | Verified on device |
 | 6 | No persistence, data, recording, AI, network, account, or new dependency added | Code scan passed |
 | 7 | Mobile TypeScript and whitespace checks pass | Complete |
-| 8 | Physical Expo Go navigation and spelling check confirmed | Human device test pending |
+| 8 | Physical Expo Go navigation and spelling check confirmed | Verified on device (2026-08-05) |
+| 9 | Reveal correct spelling after 3 wrong attempts; input box fills with the revealed word | Verified on device (2026-08-05) |
+| 10 | Progression to Next word requires an explicit Check spelling press — typing the right letters alone does not unlock it | Verified on device (2026-08-05) |
+| 11 | Keyboard no longer covers the action buttons (book title removed, word counter moved onto the prompt card) | Verified on device (2026-08-05) |
+| 12 | iOS predictive-text/QuickType suggestion bar suppressed on the spelling input | Verified on device (2026-08-05) |
+| 13 | Shelf entry point and guide screen header renamed "For grown-ups" → "Parent dashboard" | Verified on device (2026-08-05) |
 
 ## Asset Check
 
@@ -102,16 +107,52 @@ packet.
 
 ## Implementation Checkpoint
 
-**Implemented:** 2026-08-04
+**Implemented:** 2026-08-04. **Corrected and closed:** 2026-08-05.
 
-**Current status:** Source implementation and code checks passed. Physical-device
-Expo Go verification remains required before this packet should be marked Complete.
+**Current status:** Complete. Physical-device Expo Go verification passed for the
+original scope and for every correction found during that verification pass.
 
-**Checks run:**
+**Corrections made during physical-device verification (2026-08-05), beyond original
+scope, all still within `packet-m007`'s Allowed Changes (single screen, no new
+dependency, no persistence):**
+
+1. Reveal the correct spelling after 3 wrong `Check spelling` attempts; the input box
+   is filled with the revealed word instead of leaving the incorrect attempt in place.
+2. Fixed a progression bug: `Next word` was unlocking as soon as the typed text matched
+   the target word, even without pressing `Check spelling` — defeated the point of a
+   self-test. Progression now requires an explicit correct check (or a reveal), tracked
+   via its own state rather than derived live from the input.
+3. Suppressed the iOS keyboard's predictive/QuickType suggestion bar on the spelling
+   input (`keyboardType="visible-password"`, `spellCheck={false}`,
+   `textContentType="none"`) — it was surfacing the correct spelling as a suggestion
+   before the child finished typing.
+4. Fixed a layout bug: the keyboard covered the action buttons on smaller screens.
+   Removed the book-title line and moved the word counter onto the same row as
+   "Spell this word" inside the practice card, shortening the screen enough that the
+   buttons stay reachable with the keyboard open.
+5. Renamed "For grown-ups" to "Parent dashboard" (shelf entry button and the guide
+   screen's own header) — the original label tested confusing to the person clicking
+   it; the new label is a plain description of what it opens, matching the verb-style
+   naming ("Start reading," "Practice spelling," "Return to shelf") already used
+   elsewhere in the flow.
+
+**Builder/verifier note:** corrections 1-5 were implemented directly in this session at
+Dontavius's explicit direction, in the FounderOS vault chat rather than a separate
+Implementer session. The meaningful independent check — physical-device behavior
+confirmed by Dontavius himself on his own phone, not self-reported by the agent that
+wrote the code — still held for every correction before this packet was marked
+Complete.
+
+**Checks run (final pass, 2026-08-05):**
 
 - `cd apps/mobile && npx tsc --noEmit` — PASS.
 - `git diff --check` — PASS with line-ending warnings only.
 - Touched-scope prohibited-feature search — PASS: no storage, recording, speech
   recognition, network, account, analytics, AI, RAIVL Core, or new dependency work was
-  added.
-- `npm ls --workspace apps/mobile --depth=0` — PASS: no new mobile dependency added.
+  added (`keyboardShouldPersistTaps` is an unrelated React Native scroll-view prop, not
+  data persistence).
+- `git diff --stat -- package.json apps/mobile/package.json` and lockfile status — PASS:
+  no dependency manifest changes.
+- Files touched, total: `apps/mobile/src/features/practice/spelling-bee.tsx`,
+  `apps/mobile/src/features/parent/parent-guide.tsx`,
+  `apps/mobile/src/features/shelf/book-shelf.tsx`.

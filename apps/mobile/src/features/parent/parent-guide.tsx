@@ -6,9 +6,10 @@ type Props = {
   readonly onBackToShelf: () => void;
   readonly onStartReading: () => void;
   readonly onStartSpelling: () => void;
+  readonly onStartReadTogether: () => void;
 };
 
-export function ParentGuide({ book, onBackToShelf, onStartReading, onStartSpelling }: Props) {
+export function ParentGuide({ book, onBackToShelf, onStartReading, onStartSpelling, onStartReadTogether }: Props) {
   const practiceWords = book.words.filter((word) => word.vocabulary);
 
   return (
@@ -16,7 +17,7 @@ export function ParentGuide({ book, onBackToShelf, onStartReading, onStartSpelli
       <Pressable accessibilityRole="button" accessibilityLabel="Back to shelf" onPress={onBackToShelf} style={styles.back}>
         <Text style={styles.backText}>Back to shelf</Text>
       </Pressable>
-      <Text style={styles.eyebrow}>FOR GROWN-UPS</Text>
+      <Text style={styles.eyebrow}>PARENT DASHBOARD</Text>
       <Text style={styles.title}>Read together with {book.title}</Text>
       <Text style={styles.intro}>
         Start with the story, pause for words your child wants help with, and talk about the words that belong to this book.
@@ -56,6 +57,15 @@ export function ParentGuide({ book, onBackToShelf, onStartReading, onStartSpelli
         style={({ pressed }) => [styles.secondaryAction, styles.spellingAction, pressed && styles.pressed]}
       >
         <Text style={styles.secondaryActionText}>Practice spelling</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Read together"
+        accessibilityHint="Opens a page-by-page take-turns reading demo with sample story text."
+        onPress={onStartReadTogether}
+        style={({ pressed }) => [styles.secondaryAction, styles.spellingAction, pressed && styles.pressed]}
+      >
+        <Text style={styles.secondaryActionText}>Read together</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Return to book shelf" onPress={onBackToShelf} style={styles.secondaryAction}>
         <Text style={styles.secondaryActionText}>Return to shelf</Text>

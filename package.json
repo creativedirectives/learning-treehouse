@@ -9,7 +9,8 @@
     "dev:web": "npm run dev --workspace apps/web",
     "build:web": "npm run build --workspace apps/web",
     "lint:web": "npm run lint --workspace apps/web",
-    "start:mobile": "npm run start --workspace apps/mobile"
+    "start:mobile": "npm run start --workspace apps/mobile",
+    "start:relay": "npm run start --workspace apps/relay"
   },
   "devDependencies": {
     "react": "19.1.0",

@@ -24,6 +24,9 @@ export function SpellingBee({ book, onBackToGuide, onBackToShelf }: Props) {
   const [answer, setAnswer] = useState('');
   const [result, setResult] = useState('Listen to the word, type it, then check together.');
   const [speaking, setSpeaking] = useState(false);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const [confirmedCorrect, setConfirmedCorrect] = useState(false);
   const word = practiceWords[wordIndex];
   const correctCount = practiceWords.filter((practiceWord, index) => index < wordIndex && practiceWord.normalizedText).length;
 
@@ -64,11 +67,23 @@ export function SpellingBee({ book, onBackToGuide, onBackToShelf }: Props) {
       return;
     }
 
-    setResult(
-      isCorrect
-        ? `Correct. "${word.text}" is spelled ${word.text}.`
-        : `Try again together. The word sounds like "${word.text}".`,
-    );
+    if (isCorrect) {
+      setConfirmedCorrect(true);
+      setResult(`Correct. "${word.text}" is spelled ${word.text}.`);
+      return;
+    }
+
+    const attempts = wrongAttempts + 1;
+    setWrongAttempts(attempts);
+
+    if (attempts >= 3) {
+      setRevealed(true);
+      setAnswer(word.text);
+      setResult(`The word is "${word.text}" — spelled ${word.text}. Nice try together.`);
+      return;
+    }
+
+    setResult(`Try again together. The word sounds like "${word.text}".`);
   }
 
   function nextWord() {
@@ -76,6 +91,9 @@ export function SpellingBee({ book, onBackToGuide, onBackToShelf }: Props) {
     setSpeaking(false);
     setAnswer('');
     setResult('Listen to the word, type it, then check together.');
+    setWrongAttempts(0);
+    setRevealed(false);
+    setConfirmedCorrect(false);
     setWordIndex((current) => Math.min(current + 1, practiceWords.length - 1));
   }
 
@@ -84,7 +102,15 @@ export function SpellingBee({ book, onBackToGuide, onBackToShelf }: Props) {
     setSpeaking(false);
     setAnswer('');
     setResult('Listen to the word, type it, then check together.');
+    setWrongAttempts(0);
+    setRevealed(false);
+    setConfirmedCorrect(false);
     setWordIndex(0);
+  }
+
+  function handleAnswerChange(text: string) {
+    setAnswer(text);
+    setConfirmedCorrect(false);
   }
 
   return (
@@ -99,13 +125,14 @@ export function SpellingBee({ book, onBackToGuide, onBackToShelf }: Props) {
       </View>
 
       <Text style={styles.eyebrow}>BOOK-POWERED SPELLING BEE</Text>
-      <Text style={styles.title}>{book.title}</Text>
-      <Text style={styles.progress}>
-        Word {wordIndex + 1} of {practiceWords.length}
-      </Text>
 
       <View style={styles.card}>
-        <Text style={styles.prompt}>Spell this word</Text>
+        <View style={styles.promptRow}>
+          <Text style={styles.prompt}>Spell this word</Text>
+          <Text style={styles.progress}>
+            Word {wordIndex + 1} of {practiceWords.length}
+          </Text>
+        </View>
         <Text style={styles.definition}>{word.vocabulary?.definition}</Text>
         <Pressable
           accessibilityRole="button"
@@ -122,15 +149,18 @@ export function SpellingBee({ book, onBackToGuide, onBackToShelf }: Props) {
           accessibilityLabel="Type the spelling word"
           autoCapitalize="none"
           autoCorrect={false}
-          onChangeText={setAnswer}
+          keyboardType="visible-password"
+          onChangeText={handleAnswerChange}
           placeholder="type the word"
           placeholderTextColor="#8a927d"
           returnKeyType="done"
+          spellCheck={false}
           style={styles.input}
+          textContentType="none"
           value={answer}
         />
 
-        <Text accessibilityLiveRegion="polite" style={[styles.result, isCorrect && normalizedAnswer ? styles.correct : null]}>
+        <Text accessibilityLiveRegion="polite" style={[styles.result, confirmedCorrect ? styles.correct : null]}>
           {result}
         </Text>
       </View>
@@ -141,16 +171,16 @@ export function SpellingBee({ book, onBackToGuide, onBackToShelf }: Props) {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: !isCorrect || isLastWord }}
-          disabled={!isCorrect || isLastWord}
+          accessibilityState={{ disabled: (!confirmedCorrect && !revealed) || isLastWord }}
+          disabled={(!confirmedCorrect && !revealed) || isLastWord}
           onPress={nextWord}
-          style={({ pressed }) => [styles.secondaryAction, (!isCorrect || isLastWord) && styles.disabled, pressed && isCorrect && !isLastWord && styles.pressed]}
+          style={({ pressed }) => [styles.secondaryAction, ((!confirmedCorrect && !revealed) || isLastWord) && styles.disabled, pressed && (confirmedCorrect || revealed) && !isLastWord && styles.pressed]}
         >
           <Text style={styles.secondaryActionText}>Next word</Text>
         </Pressable>
       </View>
 
-      {isLastWord && isCorrect ? (
+      {isLastWord && (confirmedCorrect || revealed) ? (
         <View style={styles.doneCard}>
           <Text style={styles.doneTitle}>Practice loop complete</Text>
           <Text style={styles.doneText}>You practiced {correctCount + 1} book words together. Nothing was saved.</Text>
@@ -171,8 +201,9 @@ const styles = StyleSheet.create({
   eyebrow: { color: '#285842', fontSize: 13, fontWeight: '800', letterSpacing: 1.2 },
   title: { color: '#173b2b', fontSize: 34, fontWeight: '800', lineHeight: 40, marginTop: 8 },
   intro: { color: '#4e6254', fontSize: 17, lineHeight: 25, marginTop: 12 },
-  progress: { color: '#4e6254', fontSize: 15, fontWeight: '700', marginTop: 12 },
-  card: { backgroundColor: '#fff9ed', borderColor: '#d6dbc8', borderRadius: 24, borderWidth: 1, marginTop: 28, padding: 22 },
+  progress: { color: '#4e6254', fontSize: 15, fontWeight: '700' },
+  card: { backgroundColor: '#fff9ed', borderColor: '#d6dbc8', borderRadius: 24, borderWidth: 1, marginTop: 16, padding: 22 },
+  promptRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' },
   prompt: { color: '#173b2b', fontSize: 24, fontWeight: '800' },
   definition: { color: '#4e6254', fontSize: 17, lineHeight: 25, marginTop: 10 },
   hearButton: { alignItems: 'center', backgroundColor: '#e8f3d8', borderColor: '#a4be79', borderRadius: 20, borderWidth: 1, marginTop: 18, paddingHorizontal: 18, paddingVertical: 13 },
