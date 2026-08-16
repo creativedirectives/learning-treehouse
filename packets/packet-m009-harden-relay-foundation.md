@@ -17,7 +17,7 @@ Depends on: "Deployed relay architecture" decision, Approved 2026-08-15
 the `packet-m008` scope violation (`DECISION_LOG.md` → Process Decisions); that freeze
 is only partially lifted — see Open Items below.
 
-Status: **In Progress**
+Status: **Complete**
 
 Builder and verifier must be different agents.
 
@@ -384,6 +384,39 @@ changes:**
    self-pair check runs) rather than leaving it reusable — accepted since
    self-pairing isn't a real user flow and re-issuing the code would reopen the
    same race.
+
+**Second independent verification, 2026-08-16 (different fresh agent, verifying
+only the correction commit `00ba20c`) — verdict: both fixes confirmed correct.**
+Traced the body-cap fix against the actual `@vercel/node` runtime source (installed
+`vercel` CLI) to confirm the stream-replay mechanism genuinely delivers real bytes
+to the manual reader rather than an empty/drained stream — then live-reproduced the
+original bypass (10 KB body, `Transfer-Encoding: chunked`, no `Content-Length`) and
+confirmed it now 413s. Traced the `GETDEL` fix against `@upstash/redis`'s shipped
+source to confirm it's a genuine single Redis command (atomicity from Redis's
+single-threaded execution, not the REST transport) — then live-ran 4 trials of
+concurrent redemption against the same code; every trial produced exactly one `200`
+and one `404`. No regressions found in any of the four `parseJsonBody` callers.
+One cosmetic-only side note: retrying an already-self-pair-burned code eventually
+returns `429` instead of `404` once the attempt counter crosses its cap — no
+security implication, not fixed.
+
+**Third open item, resolved same day by live test (not by either verification
+agent):** whether a spoofed `X-Forwarded-For` header could defeat the per-IP
+rate limit. Sent 22 requests to the deployed relay, each with a different fake
+`X-Forwarded-For` value; the cap tripped by request ~13 regardless — Vercel's edge
+overrides the header with the real connecting IP rather than trusting the
+client-supplied value. Not exploitable on this deployment. `getClientIp`
+(`lib/rate-limit.js`) left as-is; no code change needed.
+
+**All items closed. Status moved to `Complete`** — two audit-001 findings resolved
+and independently verified twice (original build + correction pass), all named
+Deliverables implemented and live-tested against real Upstash Redis / Vercel Blob
+infrastructure, `server.js` confirmed untouched throughout. Residual, explicitly
+accepted gaps for future work: Vercel's own unbounded body pre-buffering (platform
+limitation, not closable from app code); audio upload/read endpoints have no live
+caller yet (by design, `packet-m012`); the same-device-concurrent-different-codes
+token-hash race noted by the second verification agent (pre-existing, narrow,
+not part of either named audit finding).
 
 ## Recommended Next Packet
 
