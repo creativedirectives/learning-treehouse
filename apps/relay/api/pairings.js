@@ -32,8 +32,12 @@ module.exports = async function handler(req, res) {
   }
 
   const code = String(body.code).toUpperCase();
-  const invite = await store.getInvite(code);
-  const attemptTtl = invite ? Math.max(1, Math.ceil((invite.expiresAt - Date.now()) / 1000)) : store.INVITE_TTL_SECONDS;
+
+  // Non-destructive peek, used only to size the attempt-counter TTL — carries no
+  // security weight. The actual redemption decision below goes through an atomic
+  // claim instead.
+  const peek = await store.getInvite(code);
+  const attemptTtl = peek ? Math.max(1, Math.ceil((peek.expiresAt - Date.now()) / 1000)) : store.INVITE_TTL_SECONDS;
   const codeAttempts = await registerInviteAttempt(code, attemptTtl);
 
   if (codeAttempts > INVITE_ATTEMPT_CAP) {
@@ -41,10 +45,20 @@ module.exports = async function handler(req, res) {
     return store.sendJson(res, 429, { error: 'Too many attempts on this code. It has been invalidated.' });
   }
 
+  // Correction, 2026-08-16 (independent verification confirmed a race here): a
+  // separate get-then-delete let two concurrent redemptions of the same code both
+  // read it before either deleted it, both pass validation, and both succeed. This
+  // atomic claim (Redis GETDEL) means only one concurrent caller can ever get a
+  // non-null result for a given code — the other gets null and 404s below, same as
+  // an expired/unknown code.
+  const invite = await store.claimInvite(code);
   if (!invite) return store.sendJson(res, 404, { error: 'Invite not found or expired' });
-  if (invite.fromDeviceId === body.deviceId) return store.sendJson(res, 400, { error: 'Cannot pair with yourself' });
-
-  await store.deleteInvite(code);
+  if (invite.fromDeviceId === body.deviceId) {
+    // The atomic claim above already consumed the code — a self-pair attempt burns
+    // it rather than leaving it reusable. Accepted trade-off: self-pairing isn't a
+    // real user flow, and re-issuing here would reopen the same race this fixes.
+    return store.sendJson(res, 400, { error: 'Cannot pair with yourself' });
+  }
 
   const inviterId = invite.fromDeviceId;
   const redeemerId = body.deviceId;

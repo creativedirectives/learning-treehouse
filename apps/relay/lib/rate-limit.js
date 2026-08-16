@@ -63,20 +63,18 @@ function readRawBody(req, maxBytes) {
 }
 
 /**
- * Parses a JSON body under maxBytes. Vercel's Node runtime auto-parses JSON
- * content-type bodies into `req.body` for standard requests; this trusts that when
- * present, and falls back to a manual capped stream read otherwise so the size cap
- * is enforced either way. The Content-Length pre-check is a cheap first filter, not
- * the only guard — the manual path re-checks actual bytes read.
+ * Parses a JSON body under maxBytes. Correction, 2026-08-16 (independent
+ * verification flagged this as a confirmed bypass): this used to trust Vercel's
+ * pre-parsed `req.body` whenever present, but Vercel's runtime buffers the entire
+ * body into memory before handler code runs at all, with no size limit of its own —
+ * and if the request omits Content-Length (e.g. chunked transfer-encoding), the
+ * pre-check never fires, so a caller could smuggle an oversized body straight past
+ * this app's own cap. Always doing the manual capped read — regardless of what
+ * `req.body` already holds — means our 413 is enforced unconditionally. This can't
+ * fix Vercel's own unbounded pre-buffering (a platform-level limitation, not
+ * something app code can close), but it does close the app-level bypass.
  */
 async function parseJsonBody(req, maxBytes) {
-  const contentLength = Number(req.headers['content-length'] || 0);
-  if (contentLength > maxBytes) {
-    throw Object.assign(new Error('Payload too large'), { statusCode: 413 });
-  }
-  if (req.body !== undefined && req.body !== null && typeof req.body === 'object') {
-    return req.body;
-  }
   const raw = await readRawBody(req, maxBytes);
   if (!raw.length) return {};
   return JSON.parse(raw.toString('utf8'));

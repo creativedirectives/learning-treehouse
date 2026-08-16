@@ -91,6 +91,19 @@ async function deleteInvite(code) {
   await kv.del(inviteKey(code));
 }
 
+/**
+ * Atomic get-and-delete, added 2026-08-16 (independent verification confirmed a
+ * race: separate get-then-delete calls let two concurrent redemptions of the same
+ * code both read it before either deleted it, both pass validation, and both
+ * succeed — one inviter paired with two different devices from a single
+ * "single-use" code). GETDEL returns the value and null if another caller already
+ * claimed it, in one round trip — only one concurrent caller can ever get a
+ * non-null result for a given code.
+ */
+async function claimInvite(code) {
+  return kv.getdel(inviteKey(code));
+}
+
 async function addPairing(deviceA, deviceB) {
   await Promise.all([kv.sadd(pairingKey(deviceA), deviceB), kv.sadd(pairingKey(deviceB), deviceA)]);
 }
@@ -202,6 +215,7 @@ module.exports = {
   createInvite,
   getInvite,
   deleteInvite,
+  claimInvite,
   addPairing,
   getPartners,
   isPaired,

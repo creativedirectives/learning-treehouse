@@ -352,6 +352,39 @@ the independent verification pass.
 unused stray project (`learning-treehouse-relay1`) exists from a naming-collision
 during setup — not deployed to, safe to ignore or delete.
 
+**Independent verification, 2026-08-16 (fresh agent, no memory of the build
+session) — verdict: did not pass as originally deployed.** Confirmed two bugs:
+1. `parseJsonBody` (`lib/rate-limit.js`) trusted Vercel's pre-parsed `req.body`
+   when present, but Vercel buffers the full body before handler code runs, with
+   no size limit of its own — a request with no `Content-Length` (e.g. chunked
+   transfer-encoding) skipped the app-level 4 KB cap entirely on `/api/invites`,
+   `/api/pairings`, `/api/events`, and `/api/connections/revoke`. This is a direct
+   miss on one of the two named `audit-001` deliverables.
+2. `api/pairings.js` read the invite, validated it, then deleted it as two separate
+   Redis calls — a race where two concurrent redemptions of the same code could
+   both read it before either deleted it, both pass validation, and both succeed.
+Also flagged, not yet independently confirmed: possible `X-Forwarded-For` spoofing
+defeating the per-IP rate limit — needs a live test, not code-verified either way.
+
+**Correction pass, same day, same session as the build (per that session's own
+note above, this repeats the builder≠scope-filler deviation in miniature — a
+different session did the verification, but the same one is applying the fix).
+Every fix must go through fresh independent verification again before this packet
+moves to `Complete`, same as if a different builder had made these specific
+changes:**
+1. `parseJsonBody` no longer trusts `req.body` at all — always runs the manual
+   capped stream read, so the 413 cap can't be bypassed by omitting
+   `Content-Length`. (Vercel's own unbounded pre-buffering is a platform limitation
+   this can't close from app code — named, not silently treated as fully solved.)
+2. Added `store.claimInvite()` using Redis `GETDEL` — atomic get-and-delete, so only
+   one concurrent redemption of a given code can ever succeed; the other gets `null`
+   and 404s, same as an expired/unknown code. `api/pairings.js` rewritten to use
+   this instead of separate get/delete calls. Trade-off, disclosed: a self-pair
+   attempt now burns the code (the atomic claim already consumed it before the
+   self-pair check runs) rather than leaving it reusable — accepted since
+   self-pairing isn't a real user flow and re-issuing the code would reopen the
+   same race.
+
 ## Recommended Next Packet
 
 `packet-m010` — relay contract tests + client resilience (per `DECISION_LOG.md`'s
