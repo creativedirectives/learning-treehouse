@@ -13,12 +13,10 @@ const { readRawBody, MAX_AUDIO_BYTES } = require('../../lib/rate-limit');
  * The body is raw bytes, not JSON, so from/to travel as query params rather than a
  * JSON envelope — kept intentionally simple since no client contract is locked yet.
  *
- * "Private" per DECISION_LOG.md means the URL is never returned to any client and
- * every read goes through api/audio/[messageId].js. @vercel/blob's `put` currently
- * only supports access: 'public' (an unguessable per-object URL, not a public
- * listing) — treated as private-by-convention here, not access-controlled by the
- * platform. Flag this at implementation-verification time if the SDK has since
- * added true private access.
+ * True private access (confirmed available in @vercel/blob 2.8.0, not just public-
+ * with-an-unguessable-URL as originally assumed when this file was drafted): the
+ * blob requires BLOB_READ_WRITE_TOKEN to read at all, on top of never returning the
+ * URL to any client and routing every read through api/audio/[messageId].js.
  */
 module.exports = async function handler(req, res) {
   if (store.handlePreflight(req, res)) return;
@@ -51,7 +49,7 @@ module.exports = async function handler(req, res) {
 
   const messageId = crypto.randomUUID();
   const blob = await put(`audio/${messageId}`, bytes, {
-    access: 'public',
+    access: 'private',
     contentType: req.headers['content-type'] || 'application/octet-stream',
   });
 

@@ -1,4 +1,5 @@
-const { del } = require('@vercel/blob');
+const { get, del } = require('@vercel/blob');
+const { buffer } = require('node:stream/consumers');
 const store = require('../../lib/store');
 const { verifyDeviceAuth } = require('../../lib/auth');
 
@@ -24,9 +25,9 @@ module.exports = async function handler(req, res) {
 
   let bytes;
   try {
-    const blobRes = await fetch(meta.blobUrl);
-    if (!blobRes.ok) return store.sendJson(res, 404, { error: 'Audio no longer available' });
-    bytes = Buffer.from(await blobRes.arrayBuffer());
+    const result = await get(meta.blobUrl, { access: 'private' });
+    if (!result || !result.stream) return store.sendJson(res, 404, { error: 'Audio no longer available' });
+    bytes = await buffer(result.stream);
   } catch {
     return store.sendJson(res, 502, { error: 'Could not retrieve audio' });
   }

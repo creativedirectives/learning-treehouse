@@ -223,14 +223,21 @@ sufficient to read a device's data):**
 6. `POST /api/audio/upload` — requires `Authorization` for `fromDeviceId`; rejects
    bodies over 5 MB (413, generous bound for a 60s clip per the already-decided
    recording cap — the 60s enforcement itself is a client concern for `packet-m012`,
-   this is only the server-side defensive ceiling); uploads bytes to Vercel Blob
-   **private** (no public access), writes `audio-meta:{messageId}`. No caller exists
-   yet in this packet — this is foundation for `packet-m012`, per Purpose.
+   this is only the server-side defensive ceiling); uploads bytes to Vercel Blob with
+   **`access: 'private'`** (confirmed available in `@vercel/blob` 2.8.0 during
+   implementation — true access-controlled private storage, not the
+   public-with-unguessable-URL fallback originally assumed when this packet was
+   scoped), writes `audio-meta:{messageId}`. No caller exists yet in this packet —
+   this is foundation for `packet-m012`, per Purpose.
 7. `GET /api/audio/:messageId` — requires `Authorization` for the metadata's
-   `toDeviceId`; 404 if expired or already delivered; streams bytes from Blob through
-   this Function (never a public Blob URL); marks delivered and deletes both the KV
-   metadata and the Blob object on successful read (delete-on-read, TTL is the
-   backstop for undelivered audio, not the primary mechanism).
+   `toDeviceId`; 404 if expired or already delivered; reads bytes via
+   `@vercel/blob`'s `get(url, { access: 'private' })` (authenticated with
+   `BLOB_READ_WRITE_TOKEN`, not a plain `fetch`) and streams them back through this
+   Function — a private blob isn't fetchable by URL at all without that token, so
+   this is stronger than "never expose the URL," it's actually inaccessible without
+   it; marks delivered and deletes both the KV metadata and the Blob object on
+   successful read (delete-on-read, TTL is the backstop for undelivered audio, not
+   the primary mechanism).
 8. `POST /api/connections/revoke` — body `{ deviceId, partnerId }`; requires
    `Authorization` for `deviceId`; deletes the pairing entry on both sides, the label,
    and any queued `events`/`audio-meta` records between the two deviceIds. Does not
@@ -316,6 +323,34 @@ to point at the new project once it exists.
    implements this) confirms 1–4 against the actual files, per
    `PORTABLE_PACKET_WORKFLOW.md` §13 and this packet's own "Builder and verifier must
    be different agents" line.
+
+**Step 2 executed, 2026-08-15 (this session, self-report — not the independent
+verification Step 5 still requires):** deployed to `learning-treehouse-relay`
+(Vercel), Upstash Redis + Vercel Blob connected. Live `curl` round-trip against real
+infrastructure:
+- `POST /api/invites` → real code + KV TTL, confirmed via `expiresInMinutes`
+- `POST /api/pairings` (redeem) → pairing created, redeemer token issued
+- `GET /api/pairings/:deviceId` (poll) → partner + inviter token on first call;
+  **second call correctly omits the token** (single-use claim verified)
+- `POST /api/events` (authed) → queued; `GET /api/events/:deviceId` (authed) →
+  delivered; **same call with no `Authorization` header → 401** (auth enforcement
+  verified)
+- `POST /api/connections/revoke` → pairing removed both sides; subsequent
+  `POST /api/events` between the same two devices → **403 "not paired"** (revoke
+  cascade verified)
+- `GET /api/cron/sweep-audio` — confirmed firing every 5 minutes via Runtime Logs,
+  200 once Blob credentials were live
+
+**Not yet exercised live:** the audio upload/read pair (no caller exists yet, by
+design — see Deliverables item 6/7) and the rate-limit caps (5 attempts/code, 20/IP)
+— throttling was code-reviewed, not load-tested. Both remain open for whoever does
+the independent verification pass.
+
+**Deployment note for that verifier:** the Vercel project ended up named
+`learning-treehouse-relay`, Root Directory `apps/relay`, with Upstash Redis
+(`upstash-kv-alizarin-island`) and Vercel Blob (private access) connected. A second,
+unused stray project (`learning-treehouse-relay1`) exists from a naming-collision
+during setup — not deployed to, safe to ignore or delete.
 
 ## Recommended Next Packet
 
