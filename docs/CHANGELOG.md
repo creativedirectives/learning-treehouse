@@ -481,3 +481,91 @@ either `packet-005-build-vocabulary-practice.md` (web) or a scoped mobile packet
 covering the device speech proof for `packet-m000`.
 
 ---
+
+Date: 2026-08-16
+Packet: packet-m009-harden-relay-foundation
+Approved by: Dontavius (2026-08-15, explicit "approved" in a repo-scoped session)
+
+Changed:
+- Replaced the frozen, in-memory `apps/relay/server.js` reference (kept committed,
+  untouched, not deleted) with a real, deployable relay: 9 Vercel Serverless
+  Functions backed by Upstash Redis (durable pairing/metadata, native TTL) and
+  private Vercel Blob (transient audio, function-routed reads only, never a public
+  URL).
+- Per-device bearer tokens issued at pairing; only a hash stored server-side; a
+  device already holding a token from an earlier pairing keeps it rather than
+  getting a second, orphaning one.
+- Closed both `audit-001` findings named as required deliverables: per-code (5) +
+  per-IP (20/15min) invite-redemption throttling, and request body size caps
+  (4 KB JSON, 5 MB audio).
+- `POST /api/connections/revoke` — v1 revocation, deletes a pairing and any
+  in-flight messages/audio between the two specific devices on both sides.
+- `GET /api/cron/sweep-audio` — Vercel Cron (`vercel.json`, every 5 min) sweeps
+  orphaned Blob audio, since Blob has no native per-object TTL.
+- Independent verification (two rounds, both by fresh agents with no memory of the
+  build) found and a same-day correction pass fixed two real bugs: a JSON
+  body-cap bypass via chunked transfer-encoding (Vercel pre-parses `req.body`
+  before handler code runs; fixed by always doing the manual capped read), and an
+  invite double-redemption race (get-then-delete was non-atomic; fixed with Redis
+  `GETDEL` via a new `store.claimInvite()`).
+- A live spoofing test (22 requests, each with a different fake
+  `X-Forwarded-For`) confirmed the per-IP rate limit can't be defeated that way on
+  this deployment — Vercel's edge overrides the header with the real IP.
+
+Files touched:
+- New: `apps/relay/api/invites.js`, `apps/relay/api/pairings.js`,
+  `apps/relay/api/pairings/[deviceId].js`, `apps/relay/api/events.js`,
+  `apps/relay/api/events/[deviceId].js`, `apps/relay/api/audio/upload.js`,
+  `apps/relay/api/audio/[messageId].js`, `apps/relay/api/connections/revoke.js`,
+  `apps/relay/api/cron/sweep-audio.js`, `apps/relay/lib/store.js`,
+  `apps/relay/lib/auth.js`, `apps/relay/lib/rate-limit.js`,
+  `apps/relay/vercel.json`, `apps/relay/.env.example`, `apps/relay/README.md`
+- Edited: `apps/relay/package.json` (added `@upstash/redis`, `@vercel/blob`),
+  `package-lock.json` (root — single lockfile for the npm workspace)
+- `packets/packet-m009-harden-relay-foundation.md`, this file
+
+Tests run:
+- `node --check` on all 12 new JS files — PASS
+- `require()` resolution smoke test on all 12 files — PASS
+- Live curl round-trip against the deployed relay (invite → redeem → poll →
+  authenticated events send/receive → revoke → post-revoke 403) — PASS
+- 4× concurrent-redemption trials against the same invite code — PASS, exactly
+  one winner each time
+- Live reproduction of the original chunked-body bypass (10 KB, no
+  `Content-Length`) — confirmed 413 after the fix
+- 22-request `X-Forwarded-For` spoof test — PASS, cap not defeated
+- `git diff --stat` confirms `apps/relay/server.js` byte-identical throughout
+
+Result: Complete. Deployed to Vercel project `learning-treehouse-relay`
+(Root Directory `apps/relay`), Upstash Redis (`upstash-kv-alizarin-island`) and
+Vercel Blob connected and live.
+
+Known issues:
+- Audio upload/read endpoints have no live caller yet — by design, `packet-m012`
+  builds the voice-message feature that uses them. Not live-tested beyond
+  `node --check`/require-resolution.
+- Vercel's own unbounded request-body pre-buffering (confirmed via its runtime
+  source) is a platform-level limitation the body-cap fix can't fully close from
+  app code — the app-level 413 enforcement is solid, but a very large request
+  still costs Vercel invocation time/memory before that 413 fires.
+- A narrow, pre-existing, unnamed race: the same device redeeming two different
+  invite codes concurrently could double-issue/overwrite its own token hash — not
+  part of either named `audit-001` finding, flagged by the second verification
+  pass, not fixed here.
+- A stray, unused Vercel project (`learning-treehouse-relay1`) exists from a
+  naming collision during setup — not deployed to, safe to delete.
+- `packet-m008`'s open question ("does this incident re-tighten LT's governance
+  tier?") is untouched by this packet and remains for the vault session to decide.
+
+Rollback available: Yes. No existing file was modified except
+`apps/relay/package.json` (two added dependency lines) and the root
+`package-lock.json`. Rollback = delete the 15 new files listed above and revert
+those two edits; `apps/relay/server.js` and every other workspace are untouched
+throughout, so `git revert` of these commits is clean.
+
+Next recommended packet: packet-m010 (relay contract tests + client resilience —
+swap `MockReadTogetherChannel` for the real relay in `connect-screen.tsx` /
+`real-read-together.tsx`, `expo-secure-store` token storage, retry/backoff on the
+poll loop).
+
+---
