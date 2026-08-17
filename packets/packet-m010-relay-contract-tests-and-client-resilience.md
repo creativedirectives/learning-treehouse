@@ -8,16 +8,16 @@ Date created: 2026-08-16
 
 Project: Learning Treehouse Mobile
 
-Approved by: [pending — not yet Approved]
+Approved by: Dontavius (this chat, explicit "approved" — 2026-08-16)
 
-Approved on: [pending]
+Approved on: 2026-08-16
 
 Depends on: `packet-m009-harden-relay-foundation` (Status: Complete, 2026-08-16) —
 this packet wires the mobile client to the real, deployed relay `packet-m009`
 built. Per `DECISION_LOG.md`'s `audit-001` renumbering, this is the packet
 immediately after `m009` in the sequence.
 
-Status: **Draft**
+Status: **In Progress**
 
 Builder and verifier must be different agents, per `packet-m009`'s own precedent
 and `.agents/lt.md`'s "still binding" category (this packet is real networking +
@@ -183,8 +183,22 @@ conventions.
 
 ## Test Steps
 
-1. `cd apps/mobile && npx tsc --noEmit` — no errors.
-2. `cd apps/mobile && npx expo-doctor` — no new failures introduced.
+1. `cd apps/mobile && npx tsc --noEmit` — no errors. **Run 2026-08-16 — PASS, no
+   output.**
+2. `cd apps/mobile && npx expo-doctor` — no new failures introduced. **Run
+   2026-08-16 — 17/18 PASS. The 1 failure (`expo` patch version 54.0.36 vs
+   54.0.37 expected) is pre-existing drift unrelated to this packet — this
+   packet never touches the `expo` package's own version pin, only adds
+   `expo-secure-store` (resolved via `npx expo install`, itself SDK-54
+   compatible at `~15.0.8`). Not fixed here — out of this packet's scope.**
+
+**Allowed Changes addendum:** `npx expo install expo-secure-store` also
+mechanically added `apps/mobile/app.json`'s `plugins: ["expo-secure-store"]` —
+required for the native module's config plugin to register, not a separate
+design decision. `package-lock.json` (root) also shows a diff for the same
+reason `packet-m009`'s did (single npm-workspace lockfile). Neither was in the
+original Allowed Changes list; both are noted here rather than silently
+included, same disclosure pattern as `packet-m009`.
 3. Manual device/simulator pass (two devices or two Expo Go instances, mirroring
    how `packet-m008`'s original mock was proven): full pairing flow — get a code
    on device A, redeem on device B, confirm both devices receive a real,

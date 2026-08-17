@@ -1,6 +1,6 @@
 import type { Book } from '@learning-treehouse/book-model';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { RealReadTogetherChannel } from './real-channel';
 
@@ -9,12 +9,15 @@ type Props = {
   readonly channel: RealReadTogetherChannel;
   readonly code: string | null;
   readonly onBackToShelf: () => void;
+  /** Called after the connection is successfully revoked, both sides. */
+  readonly onRevoked: () => void;
 };
 
-export function RealReadTogether({ book, channel, code, onBackToShelf }: Props) {
+export function RealReadTogether({ book, channel, code, onBackToShelf, onRevoked }: Props) {
   const [pageIndex, setPageIndex] = useState(0);
   const [youConfirmed, setYouConfirmed] = useState(false);
   const [partnerConfirmed, setPartnerConfirmed] = useState(false);
+  const [revoking, setRevoking] = useState(false);
 
   useEffect(
     () =>
@@ -44,11 +47,43 @@ export function RealReadTogether({ book, channel, code, onBackToShelf }: Props) 
     setPartnerConfirmed(false);
   }
 
+  function confirmRemoveConnection() {
+    Alert.alert(
+      'Remove this connection?',
+      'Neither device will be able to send or receive anything from the other. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setRevoking(true);
+            void channel.revoke().then((succeeded) => {
+              setRevoking(false);
+              if (succeeded) onRevoked();
+              else Alert.alert('Could not remove the connection', 'Check your connection and try again.');
+            });
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      <Pressable accessibilityRole="button" onPress={onBackToShelf} style={styles.back}>
-        <Text style={styles.backText}>Back to shelf</Text>
-      </Pressable>
+      <View style={styles.topRow}>
+        <Pressable accessibilityRole="button" onPress={onBackToShelf} style={styles.back}>
+          <Text style={styles.backText}>Back to shelf</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          disabled={revoking}
+          onPress={confirmRemoveConnection}
+          style={({ pressed }) => [styles.removeConnection, pressed && !revoking && styles.pressed]}
+        >
+          <Text style={styles.removeConnectionText}>{revoking ? 'Removing…' : 'Remove connection'}</Text>
+        </Pressable>
+      </View>
 
       <Text style={styles.eyebrow}>READ TOGETHER · LIVE, WITH FAMILY</Text>
 
@@ -99,8 +134,11 @@ export function RealReadTogether({ book, channel, code, onBackToShelf }: Props) 
 
 const styles = StyleSheet.create({
   screen: { flexGrow: 1, padding: 24, paddingBottom: 40 },
-  back: { alignSelf: 'flex-start', marginBottom: 26, paddingVertical: 6 },
+  topRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 26 },
+  back: { alignSelf: 'flex-start', paddingVertical: 6 },
   backText: { color: '#285842', fontSize: 16, fontWeight: '700' },
+  removeConnection: { alignSelf: 'flex-end', paddingVertical: 6 },
+  removeConnectionText: { color: '#a13f3f', fontSize: 14, fontWeight: '700' },
   eyebrow: { color: '#285842', fontSize: 13, fontWeight: '800', letterSpacing: 1.2 },
   card: { backgroundColor: '#fff9ed', borderColor: '#d6dbc8', borderRadius: 24, borderWidth: 1, marginTop: 16, padding: 22 },
   promptRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' },

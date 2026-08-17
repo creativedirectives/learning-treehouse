@@ -13,6 +13,7 @@ import { getOrCreateDeviceId } from './src/features/read-together/device-id';
 import { ReadTogether } from './src/features/read-together/read-together';
 import { RealReadTogether } from './src/features/read-together/real-read-together';
 import { createRealReadTogetherChannel, type RealReadTogetherChannel } from './src/features/read-together/real-channel';
+import { clearStoredToken, getStoredToken } from './src/features/read-together/token-store';
 import { BookShelf } from './src/features/shelf/book-shelf';
 
 export default function App() {
@@ -56,12 +57,39 @@ export default function App() {
     setScreen('connect');
   }
 
-  function handlePaired({ serverUrl, partnerId, code }: { serverUrl: string; partnerId: string; code: string }) {
+  async function handlePaired({ serverUrl, partnerId, code, token }: { serverUrl: string; partnerId: string; code: string; token: string | null }) {
     if (!deviceId) return;
+    const effectiveToken = token ?? (await getStoredToken());
+    if (!effectiveToken) {
+      // Shouldn't happen in the normal flow — connect-screen.tsx always stores a
+      // token before calling onPaired. Defensive only: bounce back rather than
+      // construct a channel with no credential.
+      setScreen('connect');
+      return;
+    }
     setOpenBook(readTogetherDemoBook);
-    setRealChannel(createRealReadTogetherChannel({ serverUrl, deviceId, partnerId }));
+    setRealChannel(
+      createRealReadTogetherChannel({
+        serverUrl,
+        deviceId,
+        partnerId,
+        token: effectiveToken,
+        onAuthError: () => {
+          void clearStoredToken();
+          setRealChannel(null);
+          setScreen('connect');
+        },
+      }),
+    );
     setPairedCode(code);
     setScreen('read-together-real');
+  }
+
+  function handleRevoked() {
+    setRealChannel(null);
+    setPairedCode(null);
+    setOpenBook(null);
+    setScreen('shelf');
   }
 
   return (
@@ -75,7 +103,7 @@ export default function App() {
       ) : screen === 'connect' && deviceId ? (
         <ConnectScreen deviceId={deviceId} onPaired={handlePaired} onBackToShelf={returnToShelf} />
       ) : screen === 'read-together-real' && openBook && realChannel ? (
-        <RealReadTogether book={openBook} channel={realChannel} code={pairedCode} onBackToShelf={returnToShelf} />
+        <RealReadTogether book={openBook} channel={realChannel} code={pairedCode} onBackToShelf={returnToShelf} onRevoked={handleRevoked} />
       ) : screen === 'parent-guide' && maryBook ? (
         <ParentGuide
           book={maryBook}

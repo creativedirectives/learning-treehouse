@@ -2,14 +2,20 @@ import * as Clipboard from 'expo-clipboard';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { setStoredToken } from './token-store';
+
 type Props = {
   readonly deviceId: string;
-  readonly onPaired: (params: { serverUrl: string; partnerId: string; code: string }) => void;
+  readonly onPaired: (params: { serverUrl: string; partnerId: string; code: string; token: string | null }) => void;
   readonly onBackToShelf: () => void;
 };
 
-/** Prefilled default so this doesn't need retyping every session on the usual home network. */
-const DEFAULT_RELAY_URL = 'http://192.168.1.80:4000';
+/**
+ * Prefilled with the deployed packet-m009 relay so this doesn't need typing on the
+ * usual case. Left editable (not hardcoded) for testing against a different
+ * deployment.
+ */
+const DEFAULT_RELAY_URL = 'https://learning-treehouse-relay.vercel.app';
 
 async function postJson(url: string, body: unknown): Promise<{ ok: boolean; data: Record<string, unknown> }> {
   try {
@@ -41,12 +47,13 @@ export function ConnectScreen({ deviceId, onPaired, onBackToShelf }: Props) {
 
     async function checkForPartner() {
       try {
-        const response = await fetch(`${normalizedServerUrl}/pairings/${encodeURIComponent(deviceId)}`);
+        const response = await fetch(`${normalizedServerUrl}/api/pairings/${encodeURIComponent(deviceId)}`);
         if (!response.ok) return;
-        const data = (await response.json()) as { partners?: readonly string[] };
+        const data = (await response.json()) as { partners?: readonly string[]; token?: string };
         const partnerId = data.partners?.[0];
         if (partnerId) {
           setJoinedPartnerId(partnerId);
+          if (data.token) void setStoredToken(data.token);
           setStatus('Your family member joined! Tap below to start reading together.');
         }
       } catch {
@@ -60,7 +67,9 @@ export function ConnectScreen({ deviceId, onPaired, onBackToShelf }: Props) {
 
   function continueToReading() {
     if (!inviteCode || !joinedPartnerId) return;
-    onPaired({ serverUrl: normalizedServerUrl, partnerId: joinedPartnerId, code: inviteCode });
+    // token is null here deliberately — checkForPartner already stored it (if this
+    // device didn't already have one) the moment the partner was detected.
+    onPaired({ serverUrl: normalizedServerUrl, partnerId: joinedPartnerId, code: inviteCode, token: null });
   }
 
   async function getInviteCode() {
@@ -69,7 +78,7 @@ export function ConnectScreen({ deviceId, onPaired, onBackToShelf }: Props) {
       return;
     }
     setBusy(true);
-    const result = await postJson(`${normalizedServerUrl}/invites`, { deviceId });
+    const result = await postJson(`${normalizedServerUrl}/api/invites`, { deviceId });
     setBusy(false);
     if (!result.ok) {
       setStatus(String(result.data.error ?? 'Could not get an invite code.'));
@@ -86,13 +95,15 @@ export function ConnectScreen({ deviceId, onPaired, onBackToShelf }: Props) {
       return;
     }
     setBusy(true);
-    const result = await postJson(`${normalizedServerUrl}/pairings`, { code: enteredCode.trim(), deviceId, label: 'Family' });
+    const result = await postJson(`${normalizedServerUrl}/api/pairings`, { code: enteredCode.trim(), deviceId, label: 'Family' });
     setBusy(false);
     if (!result.ok) {
       setStatus(String(result.data.error ?? 'Could not connect with that code.'));
       return;
     }
-    onPaired({ serverUrl: normalizedServerUrl, partnerId: String(result.data.pairedWith), code: enteredCode.trim().toUpperCase() });
+    const token = typeof result.data.token === 'string' ? result.data.token : null;
+    if (token) await setStoredToken(token);
+    onPaired({ serverUrl: normalizedServerUrl, partnerId: String(result.data.pairedWith), code: enteredCode.trim().toUpperCase(), token });
   }
 
   async function copyCode() {
@@ -116,7 +127,6 @@ export function ConnectScreen({ deviceId, onPaired, onBackToShelf }: Props) {
       <Text style={styles.eyebrow}>FAMILY CIRCLE · CONNECT</Text>
       <Text style={styles.title}>Read together, for real</Text>
       <Text style={styles.intro}>
-        Both devices need the relay server address (shown when you run it on your computer, e.g. http://192.168.1.23:4000).
         One side gets a code, the other enters it.
       </Text>
 
