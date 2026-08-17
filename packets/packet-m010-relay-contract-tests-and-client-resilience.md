@@ -220,6 +220,41 @@ included, same disclosure pattern as `packet-m009`.
    (`git status`/`git diff --stat`), and specifically that `apps/relay/` is
    untouched.
 
+## Independent Verification
+
+2026-08-16, fresh agent, no memory of the build session — verdict: **code-level
+portion passes.** Traced all four token-flow combinations (first-time/repeat
+pairing, both inviter and redeemer sides) against `apps/relay`'s actual issuance
+logic; confirmed the `Authorization` header format and `revoke()` body shape
+match the real relay handlers exactly (not assumed); confirmed 401 handling stops
+polling immediately, no re-entry; ran `npx tsc --noEmit` independently (clean,
+not just trusted the self-report); confirmed `apps/relay/` shows zero diff.
+
+Two low-severity, non-blocking findings, both fixed same day:
+1. `connect-screen.tsx`'s inviter-path token store was fire-and-forget
+   (`void setStoredToken(...)`), inconsistent with the redeemer path's awaited
+   call — a narrow race where `continueToReading` could theoretically fire
+   before the write landed. Safe in practice (falls to `App.tsx`'s defensive
+   bounce-to-connect-screen, never a wrong or stale token), but now awaited for
+   consistency.
+2. `real-channel.ts`'s fire-and-forget `sendPageComplete` POST had no `.catch`,
+   producing a cosmetic unhandled-promise-rejection warning on network failure
+   (never a crash — the local listener fire already happened). Added an empty
+   `.catch`.
+
+Also noted, not changed: the backoff schedule's failure delays effectively start
+at 4000ms rather than 2000ms (doubles before use), which still backs off/caps/
+resets correctly but isn't the literal progression the Deliverables text
+describes — a wording nuance, not a functional defect.
+
+**What still blocks `Complete`:** exactly what this packet already discloses,
+nothing new — Test Steps 3–6 require a human with a real device or Expo Go
+instance (two-device pairing, mid-session connectivity loss, third-party token
+revocation, the confirmation-dialog UX). `Status` stays `In Progress` until
+that pass happens; unlike `packet-m009`, this gate genuinely can't be closed
+from this session (no physical device available), so it isn't being worked
+around.
+
 ## Recommended Next Packet
 
 `packet-m011` — unify the mock and real Read Together screens behind the

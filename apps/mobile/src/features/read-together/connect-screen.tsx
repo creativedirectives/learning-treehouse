@@ -52,8 +52,11 @@ export function ConnectScreen({ deviceId, onPaired, onBackToShelf }: Props) {
         const data = (await response.json()) as { partners?: readonly string[]; token?: string };
         const partnerId = data.partners?.[0];
         if (partnerId) {
+          // Awaited (not fire-and-forget) so continueToReading — which relies on
+          // the token already being in SecureStore — can never race ahead of the
+          // write finishing.
+          if (data.token) await setStoredToken(data.token);
           setJoinedPartnerId(partnerId);
-          if (data.token) void setStoredToken(data.token);
           setStatus('Your family member joined! Tap below to start reading together.');
         }
       } catch {

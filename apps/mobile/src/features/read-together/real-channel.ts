@@ -82,7 +82,11 @@ export function createRealReadTogetherChannel(options: RealChannelOptions): Real
     sendPageComplete(fromRole: ReadTogetherRole, pageIndex: number) {
       const event: ReadTogetherEvent = { fromRole, pageIndex };
       listeners.forEach((listener) => listener(event));
-      void fetch(`${options.serverUrl}/api/events`, {
+      // Local listeners already fired above; this send is best-effort — a failure
+      // here just means the partner's copy is delayed until the next successful
+      // one, not lost silently forever. Caught only to avoid an unhandled
+      // promise rejection, not acted on.
+      fetch(`${options.serverUrl}/api/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({
@@ -91,7 +95,7 @@ export function createRealReadTogetherChannel(options: RealChannelOptions): Real
           type: 'page-complete',
           payload: { pageIndex },
         }),
-      });
+      }).catch(() => {});
     },
     subscribe(listener) {
       listeners.add(listener);
