@@ -99,8 +99,15 @@ export default function App() {
         partnerId,
         token: effectiveToken,
         onAuthError: () => {
+          // Flagged during packet-m012 verification: this used to clear only
+          // the token, leaving a stale pairedPartnerId (and therefore a live
+          // "Record a message" button) around after a revoke-from-the-other-
+          // side made that token unusable. A device revoked out from under it
+          // has nothing valid left to record for.
           void clearStoredToken();
+          void clearStoredPartnerId();
           setStoredTokenState(null);
+          setPairedPartnerId(null);
           setRealChannel(null);
           setScreen('connect');
         },

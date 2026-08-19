@@ -225,6 +225,16 @@ mid-build corrections.
 
 `npx tsc --noEmit` re-run after all three fixes — PASS, no output.
 
+**Second verification pass, same day, on the correction commit itself**
+(`2cc6223`) — verdict: sufficient, all three fixes close what they claim,
+no new defects, `tsc` independently re-confirmed clean. One small additional
+item surfaced, outside the three bugs under review: `onAuthError` (in
+`App.tsx`'s `handlePaired`) cleared the token on a revoke-from-the-other-side
+but not `pairedPartnerId`, leaving a stale "Record a message" button pointing
+at a device that had just revoked the connection. **Fixed same day** — the
+same clear/persist pattern already used for `handleRevoked` is now applied
+here too.
+
 ## Recommended Next Packet
 
 Restyle `page-recorder.tsx` and `book-reader.tsx`'s discovery/playback UI
