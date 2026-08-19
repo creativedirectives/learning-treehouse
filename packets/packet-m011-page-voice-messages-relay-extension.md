@@ -161,6 +161,30 @@ No. Server-side schema/endpoint work only.
 5. Independent verification (fresh agent, no memory of the build) before
    `Complete` — same discipline as `packet-m009`/`packet-m010`.
 
+**Test Steps run, 2026-08-18 — all PASS, live against the deployed relay:**
+- Uploaded a recording with `bookId=mary-had-a-little-lamb&pageIndex=2` — stored
+  correctly.
+- Uploaded a second recording for a different `bookId` — used to verify
+  filtering.
+- `GET /api/audio/pending/:deviceId` unfiltered — returned both, correct
+  fields, `blobUrl` correctly absent.
+- Same call with `?bookId=mary-had-a-little-lamb` — correctly returned only
+  the matching one.
+- Played the first recording via the existing `GET /api/audio/:messageId` —
+  200, correct bytes.
+- Pending list (filtered) called again — correctly empty; delete-on-read
+  flows through to the discovery list, not just the single-fetch endpoint.
+- `node --check` and require-resolution on all changed/new files — PASS.
+- `git status` confirms zero diff outside the Allowed Changes list.
+
+**Known live gap, disclosed not silently left:** the deployed Vercel project
+still has `AUDIO_RETENTION_SECONDS=120` set explicitly in its environment
+variables from the original `packet-m009` setup — an explicit env var
+overrides this packet's new code-level default (259200). The upload response
+above (`expiresInSeconds: 120`) confirms this directly. Updating that value on
+Vercel (then redeploying) is a dashboard action outside this session's reach,
+same category as the original storage provisioning.
+
 ## Recommended Next Packet
 
 The client-side packet this depends on: recording UI (pick a page, record,
