@@ -8,15 +8,15 @@ Date created: 2026-08-19
 
 Project: Learning Treehouse Mobile
 
-Approved by: [pending — not yet Approved]
+Approved by: Dontavius (this chat, explicit "approved" — 2026-08-19)
 
-Approved on: [pending]
+Approved on: 2026-08-19
 
 Depends on: `packet-m011-page-voice-messages-relay-extension` (Status:
 Complete, 2026-08-18) — uses its `bookId`/`pageIndex` upload params and
 `GET /api/audio/pending/:deviceId` discovery endpoint directly.
 
-Status: **Draft**
+Status: **In Progress**
 
 Builder and verifier must be different agents, per `.agents/lt.md`'s "still
 binding" category — this is the microphone/recording feature itself, the
@@ -143,6 +143,39 @@ restyling from UI ideation is a separate pass.
 5. Confirm no file outside the Allowed Changes list shows a diff.
 6. Independent verification (fresh agent) before `Complete` — same
    discipline as every prior packet in this sequence.
+
+## Build Notes
+
+- `expo-audio` (`~1.1.1`, resolved via `npx expo install`) needed `expo-asset`
+  as a peer dependency — `expo-doctor` caught this ("Your app may crash
+  outside of Expo Go without this dependency"), not something anticipated in
+  scope-fill. Added the same way (`npx expo install expo-asset`), which
+  turned out to already be present transitively — no new download, just
+  promoted to a direct dependency with its config plugin registered.
+  `app.json` now lists `expo-secure-store`, `expo-audio`, `expo-asset`.
+- No "manage my circle" roster exists yet (out of scope, per Not Allowed #3),
+  so "who to record for" uses the most recently paired partner
+  (`pairedPartnerId` in `App.tsx`) rather than a chosen circle member — a
+  disclosed simplification, not a bug, consistent with the one-partner-at-a-
+  time UI `packet-m010` already had (the *data* layer supports many partners,
+  the UI still doesn't expose choosing among them).
+- `expo-audio`'s `AudioSource` accepts `{ uri, headers }` directly, so
+  playback fetches straight from the relay with the auth header attached —
+  no manual download/file-write step needed for that direction. Upload (the
+  other direction) does need a local read: `fetch(fileUri).then(r =>
+  r.blob())` on the recorder's own output file, the standard React Native
+  pattern for reading a local file as an upload body.
+
+**Test Steps 1–2, run 2026-08-19:**
+- `npx tsc --noEmit` — PASS, no output.
+- `npx expo-doctor` — 17/18 PASS. The 1 failure (`expo` patch version
+  54.0.36 vs 54.0.37) is the same pre-existing, unrelated drift already
+  disclosed in `packet-m010` — not caused by this packet.
+- `git status` confirms exactly the Allowed Changes list, nothing else.
+
+**Test Steps 3–4 (manual two-device pass, microphone permission denial)
+still require a human with real devices — not run from this session, same as
+every prior manual-device requirement in this sequence.**
 
 ## Recommended Next Packet
 

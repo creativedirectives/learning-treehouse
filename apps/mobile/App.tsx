@@ -10,23 +10,37 @@ import { SpellingBee } from './src/features/practice/spelling-bee';
 import { ConnectScreen } from './src/features/read-together/connect-screen';
 import { readTogetherDemoBook } from './src/features/read-together/demo-book';
 import { getOrCreateDeviceId } from './src/features/read-together/device-id';
+import { PageRecorder } from './src/features/read-together/page-recorder';
 import { ReadTogether } from './src/features/read-together/read-together';
 import { RealReadTogether } from './src/features/read-together/real-read-together';
 import { createRealReadTogetherChannel, type RealReadTogetherChannel } from './src/features/read-together/real-channel';
 import { clearStoredToken, getStoredToken } from './src/features/read-together/token-store';
 import { BookShelf } from './src/features/shelf/book-shelf';
 
+/**
+ * packet-m012: matches connect-screen.tsx's DEFAULT_RELAY_URL. Duplicated
+ * rather than imported/exported to keep this packet's edits to exactly the
+ * files it scoped — connect-screen.tsx isn't touched here.
+ */
+const RELAY_URL = 'https://learning-treehouse-relay.vercel.app';
+
 export default function App() {
   const [openBook, setOpenBook] = useState<Book | null>(null);
-  const [screen, setScreen] = useState<'shelf' | 'parent-guide' | 'reader' | 'spelling-bee' | 'read-together' | 'connect' | 'read-together-real'>('shelf');
+  const [screen, setScreen] = useState<'shelf' | 'parent-guide' | 'reader' | 'spelling-bee' | 'read-together' | 'connect' | 'read-together-real' | 'page-recorder'>('shelf');
   const [realChannel, setRealChannel] = useState<RealReadTogetherChannel | null>(null);
   const [pairedCode, setPairedCode] = useState<string | null>(null);
+  const [pairedPartnerId, setPairedPartnerId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [storedToken, setStoredTokenState] = useState<string | null>(null);
   const maryBook = books.find((book) => book.id === 'mary-had-a-little-lamb' && book.availability === 'full');
   const shelfBooks = [books[0], readTogetherDemoBook, ...books.slice(1)];
 
   useEffect(() => {
     void getOrCreateDeviceId().then(setDeviceId);
+    // packet-m012: loads whatever token a prior pairing already stored, so the
+    // "record a message" / "someone left you a message" features work on
+    // return visits without needing to pair again this session.
+    void getStoredToken().then(setStoredTokenState);
   }, []);
 
   function openReader(book: Book) {
@@ -67,6 +81,8 @@ export default function App() {
       setScreen('connect');
       return;
     }
+    setStoredTokenState(effectiveToken);
+    setPairedPartnerId(partnerId);
     setOpenBook(readTogetherDemoBook);
     setRealChannel(
       createRealReadTogetherChannel({
@@ -76,6 +92,7 @@ export default function App() {
         token: effectiveToken,
         onAuthError: () => {
           void clearStoredToken();
+          setStoredTokenState(null);
           setRealChannel(null);
           setScreen('connect');
         },
@@ -88,14 +105,37 @@ export default function App() {
   function handleRevoked() {
     setRealChannel(null);
     setPairedCode(null);
+    setPairedPartnerId(null);
     setOpenBook(null);
     setScreen('shelf');
+  }
+
+  function openPageRecorder() {
+    setScreen('page-recorder');
   }
 
   return (
     <SafeAreaView style={styles.container}>
       {screen === 'reader' && openBook ? (
-        <BookReader book={openBook} onBackToShelf={returnToShelf} onStartSpelling={() => openSpellingBee(openBook)} />
+        <BookReader
+          book={openBook}
+          onBackToShelf={returnToShelf}
+          onStartSpelling={() => openSpellingBee(openBook)}
+          deviceId={deviceId ?? undefined}
+          token={storedToken ?? undefined}
+          serverUrl={RELAY_URL}
+          partnerId={pairedPartnerId ?? undefined}
+          onRecordForPartner={pairedPartnerId ? openPageRecorder : undefined}
+        />
+      ) : screen === 'page-recorder' && openBook && deviceId && pairedPartnerId && storedToken ? (
+        <PageRecorder
+          book={openBook}
+          deviceId={deviceId}
+          partnerId={pairedPartnerId}
+          serverUrl={RELAY_URL}
+          token={storedToken}
+          onDone={() => setScreen('reader')}
+        />
       ) : screen === 'spelling-bee' && openBook ? (
         <SpellingBee book={openBook} onBackToGuide={returnToParentGuide} onBackToShelf={returnToShelf} />
       ) : screen === 'read-together' && openBook ? (

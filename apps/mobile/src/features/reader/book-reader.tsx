@@ -1,23 +1,38 @@
 import type { Book } from '@learning-treehouse/book-model';
+import { createAudioPlayer } from 'expo-audio';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { speakWord, stopSpeakingWord } from '../../platform/speech';
+import { audioSourceFor, fetchPendingForBook, type PendingAudioMessage } from '../read-together/audio-message-client';
 
 type Props = {
   readonly book: Book;
   readonly onBackToShelf: () => void;
   readonly onStartSpelling: () => void;
+  /**
+   * packet-m012: only present once this device has paired with someone
+   * (packet-m010's flow). When absent, the page-recording discovery/playback
+   * feature is simply invisible — no pairing, nothing to check for.
+   */
+  readonly deviceId?: string;
+  readonly token?: string;
+  readonly serverUrl?: string;
+  /** Present only if this device is paired with someone — enables the "Record a message" entry point. */
+  readonly partnerId?: string;
+  readonly onRecordForPartner?: () => void;
 };
 
 function normalizeInlineToken(token: string): string {
   return token.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-export function BookReader({ book, onBackToShelf, onStartSpelling }: Props) {
+export function BookReader({ book, onBackToShelf, onStartSpelling, deviceId, token, serverUrl, partnerId, onRecordForPartner }: Props) {
   const [pageIndex, setPageIndex] = useState(0);
   const [speakingWordId, setSpeakingWordId] = useState<string | null>(null);
   const [speechStatus, setSpeechStatus] = useState('Tap a word to hear it.');
+  const [pendingMessages, setPendingMessages] = useState<readonly PendingAudioMessage[]>([]);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const page = book.pages[pageIndex];
   const pageWords = useMemo(() => book.words.filter((word) => word.pageId === page?.id), [book.words, page?.id]);
   const wordsByNormalizedText = useMemo(
@@ -25,7 +40,37 @@ export function BookReader({ book, onBackToShelf, onStartSpelling }: Props) {
     [pageWords],
   );
   useEffect(() => () => stopSpeakingWord(), []);
+
+  useEffect(() => {
+    if (!deviceId || !token || !serverUrl) return;
+    let cancelled = false;
+    void fetchPendingForBook(serverUrl, deviceId, token, book.id).then((pending) => {
+      if (!cancelled) setPendingMessages(pending);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [book.id, deviceId, token, serverUrl]);
+
+  function playPageMessage(message: PendingAudioMessage) {
+    if (!token || !serverUrl || playingMessageId) return;
+    setPlayingMessageId(message.messageId);
+    const player = createAudioPlayer(audioSourceFor(serverUrl, message.messageId, token));
+    const subscription = player.addListener('playbackStatusUpdate', (status) => {
+      if (!status.didJustFinish) return;
+      subscription.remove();
+      player.remove();
+      setPlayingMessageId((current) => (current === message.messageId ? null : current));
+      // The relay already deleted this on that same read (delete-on-read) —
+      // dropping it locally too so the indicator disappears without a refetch.
+      setPendingMessages((current) => current.filter((item) => item.messageId !== message.messageId));
+    });
+    player.play();
+  }
+
   if (!page) return null;
+
+  const pageMessage = pendingMessages.find((message) => message.pageIndex === pageIndex);
   const isFirstPage = pageIndex === 0;
   const isLastPage = pageIndex === book.pages.length - 1;
 
@@ -44,6 +89,19 @@ export function BookReader({ book, onBackToShelf, onStartSpelling }: Props) {
       <Pressable accessibilityRole="button" onPress={onBackToShelf} style={styles.back}><Text style={styles.backText}>← Back to shelf</Text></Pressable>
       <Text style={styles.eyebrow}>READ TOGETHER</Text><Text style={styles.title}>{book.title}</Text>
       <Text accessibilityLiveRegion="polite" style={styles.progress}>Page {pageIndex + 1} of {book.pages.length}</Text>
+      {pageMessage ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Play the message left on this page"
+          disabled={playingMessageId !== null}
+          onPress={() => playPageMessage(pageMessage)}
+          style={({ pressed }) => [styles.messageBanner, pressed && playingMessageId === null && styles.pressed]}
+        >
+          <Text style={styles.messageBannerText}>
+            {playingMessageId === pageMessage.messageId ? 'Playing…' : 'Someone left you a message on this page — tap to listen'}
+          </Text>
+        </Pressable>
+      ) : null}
       <View style={styles.pageCard}>
         <Text style={styles.pageText}>
           {page.readAlong.text.split(/(\s+)/).map((token, index) => {
@@ -95,6 +153,17 @@ export function BookReader({ book, onBackToShelf, onStartSpelling }: Props) {
       >
         <Text style={styles.spellingActionText}>Practice spelling</Text>
       </Pressable>
+      {partnerId && onRecordForPartner ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Record a message for a page in ${book.title}`}
+          accessibilityHint="Opens the recording screen to leave a voice message on a page of this book."
+          onPress={onRecordForPartner}
+          style={({ pressed }) => [styles.recordForPartnerAction, pressed && styles.pressed]}
+        >
+          <Text style={styles.recordForPartnerActionText}>Record a message</Text>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }
@@ -102,9 +171,11 @@ export function BookReader({ book, onBackToShelf, onStartSpelling }: Props) {
 const styles = StyleSheet.create({
   screen: { flexGrow: 1, padding: 24, paddingBottom: 40 }, back: { alignSelf: 'flex-start', marginBottom: 26, paddingVertical: 6 }, backText: { color: '#285842', fontSize: 16, fontWeight: '700' },
   eyebrow: { color: '#285842', fontSize: 13, fontWeight: '800', letterSpacing: 1.2 }, title: { color: '#173b2b', fontSize: 34, fontWeight: '800', lineHeight: 40, marginTop: 8 }, progress: { color: '#4e6254', fontSize: 15, fontWeight: '700', marginTop: 12 },
+  messageBanner: { alignItems: 'center', backgroundColor: '#f3b84d', borderRadius: 16, marginTop: 14, paddingHorizontal: 18, paddingVertical: 14 }, messageBannerText: { color: '#173b2b', fontSize: 15, fontWeight: '800', textAlign: 'center' },
   pageCard: { backgroundColor: '#fff9ed', borderRadius: 24, marginTop: 28, padding: 26 }, pageText: { color: '#173b2b', fontSize: 32, fontWeight: '700', lineHeight: 44 }, inlineWord: { color: '#285842', textDecorationLine: 'underline', textDecorationStyle: 'dotted' }, inlineVocabularyWord: { backgroundColor: '#e8f3d8', color: '#173b2b', fontWeight: '800', textDecorationLine: 'none' }, activeInlineWord: { backgroundColor: '#f3b84d', color: '#173b2b', textDecorationLine: 'none' },
   wordsSection: { marginTop: 28 }, wordsTitle: { color: '#173b2b', fontSize: 22, fontWeight: '800' }, hint: { color: '#4e6254', fontSize: 15, marginTop: 4 }, wordRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 },
   word: { backgroundColor: '#e8f3d8', borderColor: '#a4be79', borderRadius: 18, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12 }, activeWord: { backgroundColor: '#f3b84d', borderColor: '#b47514' }, wordText: { color: '#285842', fontSize: 18, fontWeight: '800' }, definition: { color: '#4e6254', fontSize: 13, lineHeight: 18, marginTop: 4, maxWidth: 230 }, activeWordText: { color: '#173b2b' }, speechStatus: { color: '#4e6254', fontSize: 14, fontWeight: '600', lineHeight: 20, marginTop: 16 },
   navigation: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 34 }, previous: { borderColor: '#285842', borderRadius: 24, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 13 }, next: { backgroundColor: '#f3b84d', borderRadius: 24, paddingHorizontal: 24, paddingVertical: 13 }, previousText: { color: '#285842', fontSize: 16, fontWeight: '800' }, nextText: { color: '#173b2b', fontSize: 16, fontWeight: '800' }, disabled: { opacity: 0.4 }, pressed: { opacity: 0.78 },
   spellingAction: { alignItems: 'center', borderColor: '#285842', borderRadius: 24, borderWidth: 1, marginTop: 18, paddingHorizontal: 24, paddingVertical: 14 }, spellingActionText: { color: '#285842', fontSize: 16, fontWeight: '800' },
+  recordForPartnerAction: { alignItems: 'center', backgroundColor: '#f3b84d', borderRadius: 24, marginTop: 14, paddingHorizontal: 24, paddingVertical: 14 }, recordForPartnerActionText: { color: '#173b2b', fontSize: 16, fontWeight: '800' },
 });
