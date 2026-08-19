@@ -11,6 +11,7 @@ import { ConnectScreen } from './src/features/read-together/connect-screen';
 import { readTogetherDemoBook } from './src/features/read-together/demo-book';
 import { getOrCreateDeviceId } from './src/features/read-together/device-id';
 import { PageRecorder } from './src/features/read-together/page-recorder';
+import { clearStoredPartnerId, getStoredPartnerId, setStoredPartnerId } from './src/features/read-together/partner-store';
 import { ReadTogether } from './src/features/read-together/read-together';
 import { RealReadTogether } from './src/features/read-together/real-read-together';
 import { createRealReadTogetherChannel, type RealReadTogetherChannel } from './src/features/read-together/real-channel';
@@ -41,6 +42,12 @@ export default function App() {
     // "record a message" / "someone left you a message" features work on
     // return visits without needing to pair again this session.
     void getStoredToken().then(setStoredTokenState);
+    // Correction, same packet: pairedPartnerId used to live only in this
+    // component's state, so it was lost on every relaunch — the "Record a
+    // message" entry point silently vanished for an already-paired returning
+    // user even though their token (and therefore incoming messages) still
+    // worked fine. Restoring it here mirrors the token's own restore above.
+    void getStoredPartnerId().then(setPairedPartnerId);
   }, []);
 
   function openReader(book: Book) {
@@ -83,6 +90,7 @@ export default function App() {
     }
     setStoredTokenState(effectiveToken);
     setPairedPartnerId(partnerId);
+    void setStoredPartnerId(partnerId);
     setOpenBook(readTogetherDemoBook);
     setRealChannel(
       createRealReadTogetherChannel({
@@ -106,6 +114,7 @@ export default function App() {
     setRealChannel(null);
     setPairedCode(null);
     setPairedPartnerId(null);
+    void clearStoredPartnerId();
     setOpenBook(null);
     setScreen('shelf');
   }

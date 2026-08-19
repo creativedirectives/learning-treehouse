@@ -1,6 +1,6 @@
 import type { Book } from '@learning-treehouse/book-model';
-import { createAudioPlayer } from 'expo-audio';
-import { useEffect, useMemo, useState } from 'react';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { speakWord, stopSpeakingWord } from '../../platform/speech';
@@ -33,6 +33,13 @@ export function BookReader({ book, onBackToShelf, onStartSpelling, deviceId, tok
   const [speechStatus, setSpeechStatus] = useState('Tap a word to hear it.');
   const [pendingMessages, setPendingMessages] = useState<readonly PendingAudioMessage[]>([]);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const activePlayerRef = useRef<AudioPlayer | null>(null);
+  // Messages already played this session — a fetch triggered by page
+  // navigation can be in flight (and return stale, not-yet-deleted-server-
+  // side data) at the exact moment a different message finishes playing.
+  // Without this, that stale response could re-add an already-consumed
+  // message right after playPageMessage correctly filtered it out.
+  const consumedMessageIdsRef = useRef<Set<string>>(new Set());
   const page = book.pages[pageIndex];
   const pageWords = useMemo(() => book.words.filter((word) => word.pageId === page?.id), [book.words, page?.id]);
   const wordsByNormalizedText = useMemo(
@@ -41,25 +48,53 @@ export function BookReader({ book, onBackToShelf, onStartSpelling, deviceId, tok
   );
   useEffect(() => () => stopSpeakingWord(), []);
 
+  // Independent verification (packet-m012) found createAudioPlayer's own docs
+  // state it does NOT auto-release, unlike the useAudioPlayer hook — without
+  // this cleanup, navigating away mid-playback (back to shelf, into spelling
+  // practice, etc.) leaked the native player and left it playing in the
+  // background. Pausing before removing, in case remove() alone doesn't stop
+  // playback on every platform.
+  useEffect(
+    () => () => {
+      activePlayerRef.current?.pause();
+      activePlayerRef.current?.remove();
+      activePlayerRef.current = null;
+    },
+    [],
+  );
+
+  // packet-m012 verification also found this effect originally only re-fetched
+  // on book-open (deps missing pageIndex), so a message recorded by a circle
+  // member while the kid was already mid-book wouldn't show up until the book
+  // was closed and reopened — pageIndex is now included so navigating to any
+  // page re-checks what's pending, matching Deliverable 3's "on opening a book
+  // and on page change."
   useEffect(() => {
     if (!deviceId || !token || !serverUrl) return;
     let cancelled = false;
     void fetchPendingForBook(serverUrl, deviceId, token, book.id).then((pending) => {
-      if (!cancelled) setPendingMessages(pending);
+      if (!cancelled) setPendingMessages(pending.filter((item) => !consumedMessageIdsRef.current.has(item.messageId)));
     });
     return () => {
       cancelled = true;
     };
-  }, [book.id, deviceId, token, serverUrl]);
+  }, [book.id, deviceId, token, serverUrl, pageIndex]);
 
   function playPageMessage(message: PendingAudioMessage) {
     if (!token || !serverUrl || playingMessageId) return;
     setPlayingMessageId(message.messageId);
+    // Marked consumed here, not just on didJustFinish — the relay deletes the
+    // message server-side as soon as its bytes are fetched (when the player
+    // loads this source), not when playback finishes, so the guard needs to
+    // cover the whole playback window, not just its end.
+    consumedMessageIdsRef.current.add(message.messageId);
     const player = createAudioPlayer(audioSourceFor(serverUrl, message.messageId, token));
+    activePlayerRef.current = player;
     const subscription = player.addListener('playbackStatusUpdate', (status) => {
       if (!status.didJustFinish) return;
       subscription.remove();
       player.remove();
+      if (activePlayerRef.current === player) activePlayerRef.current = null;
       setPlayingMessageId((current) => (current === message.messageId ? null : current));
       // The relay already deleted this on that same read (delete-on-read) —
       // dropping it locally too so the indicator disappears without a refetch.

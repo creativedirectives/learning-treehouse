@@ -177,6 +177,54 @@ restyling from UI ideation is a separate pass.
 still require a human with real devices — not run from this session, same as
 every prior manual-device requirement in this sequence.**
 
+## Independent Verification
+
+2026-08-19, fresh agent, no memory of the build session — verdict: **did not
+pass as originally built**, two confirmed bugs plus one confirmed spec
+deviation, all fixed same day.
+
+1. **Resource leak, confirmed**: `createAudioPlayer` in `book-reader.tsx`
+   (used instead of the auto-releasing `useAudioPlayer` hook, since playback
+   is triggered dynamically by a tap, not tied to mount) was never released
+   if the component unmounted mid-playback — verified against the package's
+   own doc comment stating `createAudioPlayer` "doesn't release
+   automatically." **Fixed**: the player is now held in a ref, with an
+   unmount-cleanup effect that pauses and removes it.
+2. **Partner ID not persisted, confirmed**: `pairedPartnerId` lived only in
+   `App.tsx` component state, lost on every relaunch — an already-paired
+   returning user kept receiving/playing messages fine (that only needs the
+   persisted token) but the "Record a message" entry point silently
+   disappeared until they re-ran the Connect flow. This was an undisclosed
+   asymmetry with the token, not the disclosed "no roster" simplification.
+   **Fixed**: new `partner-store.ts` (AsyncStorage, not SecureStore — a
+   partner's device ID isn't sensitive the same way the auth token is, same
+   reasoning `device-id.ts` already established for this device's own ID),
+   restored on mount alongside the token, persisted on pairing, cleared on
+   revoke.
+3. **Spec deviation, confirmed**: Deliverable 3 says book-reader checks for
+   pending messages "on opening a book **and on page change**," but the
+   `useEffect` dependency array omitted `pageIndex` — a message recorded
+   while the kid was already mid-book wouldn't appear until the book was
+   closed and reopened. **Fixed**: `pageIndex` added to the dependency
+   array. This reopened a related risk the verifier also named (a stale
+   in-flight re-fetch could re-add a message that just finished playing,
+   since the relay deletes on read, not on playback-finish) — closed with a
+   `consumedMessageIdsRef` set, marked at the moment a message starts
+   loading (when the relay actually deletes it server-side), not just when
+   `didJustFinish` fires, and consulted by every fetch response before it's
+   applied to state.
+
+Everything else the verification checked — `expo-audio` API usage against
+the actual installed types, the auth/token route guards, permission-denial
+handling, upload content-type correctness, and scope — passed clean.
+
+**New file added during the correction, not in the original Allowed
+Changes list**: `apps/mobile/src/features/read-together/partner-store.ts` —
+disclosed here rather than silently included, same pattern as `packet-m011`'s
+mid-build corrections.
+
+`npx tsc --noEmit` re-run after all three fixes — PASS, no output.
+
 ## Recommended Next Packet
 
 Restyle `page-recorder.tsx` and `book-reader.tsx`'s discovery/playback UI
