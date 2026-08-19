@@ -22,7 +22,9 @@ const kv = new Redis({
 const INVITE_TTL_SECONDS = 30 * 60;
 const EVENT_TTL_SECONDS = 72 * 60 * 60;
 const UNCLAIMED_TOKEN_TTL_SECONDS = 10 * 60;
-const AUDIO_RETENTION_SECONDS = Number(process.env.AUDIO_RETENTION_SECONDS || 120);
+// 72 hours — a real-world default, not packet-m009's 45/120/240-second testing
+// placeholders. Adjustable via env var; see apps/relay/.env.example.
+const AUDIO_RETENTION_SECONDS = Number(process.env.AUDIO_RETENTION_SECONDS || 259200);
 
 function inviteKey(code) {
   return `invite:${code}`;

@@ -10,10 +10,17 @@
   survive across serverless invocations) and this packet does not modify it. Kept for
   the UX it proved. Run locally with `npm run start:relay` from the repo root, same
   as before.
-- `api/` — the real, deployable relay this packet adds: Vercel Serverless Functions
-  backed by Upstash KV and Vercel Blob. Nothing here runs until it's deployed as its
-  own Vercel project (see below) — this is not wired into any client yet
-  (`packet-m010`).
+- `api/` — the real, deployable relay: Vercel Serverless Functions backed by Upstash
+  KV and Vercel Blob. Deployed to `learning-treehouse-relay` on Vercel.
+
+## Audio messages (`packet-m011`)
+
+`POST /api/audio/upload` now requires `bookId` and `pageIndex` query params
+alongside `fromDeviceId`/`toDeviceId` — a recording is tied to a specific page of a
+specific book, not a generic message. `GET /api/audio/pending/:deviceId` (optional
+`?bookId=` filter) lists what's waiting for a device — metadata only, no audio
+bytes — without needing to already know a `messageId`. Still no client caller as of
+this packet; that's the next one, gated separately (microphone/recording).
 
 ## Deploying (HV REQUIRED — needs the Vercel dashboard)
 

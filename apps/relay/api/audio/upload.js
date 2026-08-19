@@ -5,13 +5,17 @@ const { verifyDeviceAuth } = require('../../lib/auth');
 const { readRawBody, MAX_AUDIO_BYTES } = require('../../lib/rate-limit');
 
 /**
- * POST /api/audio/upload?fromDeviceId=...&toDeviceId=... (raw audio bytes as body)
- * -> { messageId, expiresInSeconds }
+ * POST /api/audio/upload?fromDeviceId=...&toDeviceId=...&bookId=...&pageIndex=...
+ * (raw audio bytes as body) -> { messageId, expiresInSeconds }
  *
- * Foundation only — no caller exists yet in this packet (packet-m012 builds the
- * voice-message feature that uses this). Requires Authorization for fromDeviceId.
- * The body is raw bytes, not JSON, so from/to travel as query params rather than a
- * JSON envelope — kept intentionally simple since no client contract is locked yet.
+ * Requires Authorization for fromDeviceId. The body is raw bytes, not JSON, so
+ * metadata travels as query params rather than a JSON envelope.
+ *
+ * packet-m011 addition: bookId/pageIndex tie a recording to a specific page, and
+ * createdAt is stored so GET /api/audio/pending/:deviceId can list/sort what's
+ * waiting for a device without downloading any audio — the discovery mechanism
+ * the original packet-m009 design didn't have (it assumed a caller already knew
+ * a specific messageId).
  *
  * True private access (confirmed available in @vercel/blob 2.8.0, not just public-
  * with-an-unguessable-URL as originally assumed when this file was drafted): the
@@ -24,8 +28,14 @@ module.exports = async function handler(req, res) {
 
   const fromDeviceId = decodeURIComponent(String(req.query.fromDeviceId || ''));
   const toDeviceId = decodeURIComponent(String(req.query.toDeviceId || ''));
+  const bookId = decodeURIComponent(String(req.query.bookId || ''));
+  const pageIndex = Number(req.query.pageIndex);
   if (!fromDeviceId || !toDeviceId) {
     return store.sendJson(res, 400, { error: 'fromDeviceId and toDeviceId query params required' });
+  }
+  if (!bookId) return store.sendJson(res, 400, { error: 'bookId query param required' });
+  if (!Number.isInteger(pageIndex) || pageIndex < 0) {
+    return store.sendJson(res, 400, { error: 'pageIndex query param required and must be a non-negative integer' });
   }
 
   const authed = await verifyDeviceAuth(req, fromDeviceId);
@@ -56,7 +66,10 @@ module.exports = async function handler(req, res) {
   await store.setAudioMeta(messageId, {
     fromDeviceId,
     toDeviceId,
+    bookId,
+    pageIndex,
     blobUrl: blob.url,
+    createdAt: Date.now(),
     expiresAt: Date.now() + store.AUDIO_RETENTION_SECONDS * 1000,
     delivered: false,
   });

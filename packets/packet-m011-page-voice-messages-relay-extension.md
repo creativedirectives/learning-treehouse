@@ -8,9 +8,9 @@ Date created: 2026-08-18
 
 Project: Learning Treehouse Mobile
 
-Approved by: [pending — not yet Approved]
+Approved by: Dontavius (this chat, explicit "approved" — 2026-08-18)
 
-Approved on: [pending]
+Approved on: 2026-08-18
 
 Depends on: `packet-m009-harden-relay-foundation` (Status: Complete, 2026-08-16) —
 extends its audio-message plumbing (Upstash Redis metadata, private Vercel Blob,
@@ -24,7 +24,7 @@ the live, synchronous, both-devices-online, confirm-every-page flow that
 carried forward into new client work. This packet number is reused for the
 feature that actually is the target, to avoid a confusing `m011`/`m011b` split.
 
-Status: **Draft**
+Status: **In Progress**
 
 Builder and verifier must be different agents, per `.agents/lt.md`'s "still
 binding" category — this touches persistence (the audio metadata schema) and is
@@ -83,12 +83,13 @@ something" interaction at all.
 
 ## Deliverables
 
-1. **Audio metadata gains `bookId` and `pageIndex`.**
-   `apps/relay/lib/store.js`'s `setAudioMeta`/`getAudioMeta` — the stored
-   object gains `bookId: string`, `pageIndex: number` (non-negative integer),
-   and `createdAt: number` (epoch ms — not currently tracked, needed so a
-   pending list can be sorted/displayed). Existing fields (`fromDeviceId`,
-   `toDeviceId`, `blobUrl`, `expiresAt`, `delivered`) unchanged.
+1. **Audio metadata gains `bookId` and `pageIndex`.** `setAudioMeta`/
+   `getAudioMeta` in `apps/relay/lib/store.js` are shape-agnostic (store/return
+   whatever object is passed) — no function-signature change needed there. The
+   new fields (`bookId: string`, `pageIndex: number`, `createdAt: number` epoch
+   ms) are added by the caller, `apps/relay/api/audio/upload.js`. Existing
+   fields (`fromDeviceId`, `toDeviceId`, `blobUrl`, `expiresAt`, `delivered`)
+   unchanged.
 2. **`POST /api/audio/upload`** (edit) — now requires `bookId` and `pageIndex`
    as additional query params alongside the existing `fromDeviceId`/
    `toDeviceId`; 400s if `pageIndex` isn't a non-negative integer or `bookId`
