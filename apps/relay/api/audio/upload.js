@@ -29,12 +29,18 @@ module.exports = async function handler(req, res) {
   const fromDeviceId = decodeURIComponent(String(req.query.fromDeviceId || ''));
   const toDeviceId = decodeURIComponent(String(req.query.toDeviceId || ''));
   const bookId = decodeURIComponent(String(req.query.bookId || ''));
-  const pageIndex = Number(req.query.pageIndex);
+  // Checked as a raw string before Number() coercion — independent verification
+  // found Number('') and Number('   ') both coerce to 0, which then passes
+  // Number.isInteger(0) && 0 >= 0, silently accepting an empty/whitespace
+  // pageIndex as page 0 instead of rejecting it.
+  const rawPageIndex = req.query.pageIndex;
+  const pageIndexProvided = typeof rawPageIndex === 'string' && rawPageIndex.trim() !== '';
+  const pageIndex = pageIndexProvided ? Number(rawPageIndex) : NaN;
   if (!fromDeviceId || !toDeviceId) {
     return store.sendJson(res, 400, { error: 'fromDeviceId and toDeviceId query params required' });
   }
   if (!bookId) return store.sendJson(res, 400, { error: 'bookId query param required' });
-  if (!Number.isInteger(pageIndex) || pageIndex < 0) {
+  if (!pageIndexProvided || !Number.isInteger(pageIndex) || pageIndex < 0) {
     return store.sendJson(res, 400, { error: 'pageIndex query param required and must be a non-negative integer' });
   }
 

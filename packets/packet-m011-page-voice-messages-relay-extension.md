@@ -24,7 +24,7 @@ the live, synchronous, both-devices-online, confirm-every-page flow that
 carried forward into new client work. This packet number is reused for the
 feature that actually is the target, to avoid a confusing `m011`/`m011b` split.
 
-Status: **In Progress**
+Status: **Complete**
 
 Builder and verifier must be different agents, per `.agents/lt.md`'s "still
 binding" category — this touches persistence (the audio metadata schema) and is
@@ -184,6 +184,38 @@ overrides this packet's new code-level default (259200). The upload response
 above (`expiresInSeconds: 120`) confirms this directly. Updating that value on
 Vercel (then redeploying) is a dashboard action outside this session's reach,
 same category as the original storage provisioning.
+
+## Independent Verification
+
+2026-08-18, fresh agent, no memory of the build session — verdict: **one
+confirmed, live-reproduced bug**, everything else clean. Live re-ran its own
+version of the Test Steps against the deployed relay (not just read code) —
+confirmed the response shapes, filtering, no-`blobUrl`-leak, and 401 handling
+all matched what the build session claimed.
+
+**Confirmed bug:** `pageIndex=""` (empty or whitespace-only query value) was
+silently accepted as page `0` instead of rejected with 400 —
+`Number('')`/`Number('   ')` both coerce to `0` in JS, which then passes
+`Number.isInteger(0) && 0 >= 0`. Live-reproduced against the deployment before
+the fix; live-confirmed rejection of negative, decimal, and entirely-missing
+`pageIndex` all already worked correctly — the gap was specifically the
+empty-string case. Low severity (requires an already-authenticated, already-
+paired device; worst case is a mis-tagged page-0 recording, no security
+implication) but a real, direct contradiction of this packet's own Deliverable
+#2 text. **Fixed same day**: `upload.js` now checks the raw query string before
+`Number()` coercion, rejecting when it's missing or empty/whitespace, rather
+than trusting the coerced value alone.
+
+**Non-blocking note, not fixed:** the `audio-pending:{deviceId}` index (from
+`packet-m009`) has no cleanup path for entries whose metadata expired unplayed
+— traced every code path that touches it and confirmed none of them call
+`removeAudioPending` for an already-gone `messageId`. Not a new problem this
+packet introduced structurally, but `m011`'s pending-list endpoint is the first
+real, ongoing read consumer of that index, making slow unbounded growth a real
+(if low-severity, UUID-string-scale) consideration going forward. Logged here
+rather than fixed — a candidate for a future cleanup pass (e.g., have the list
+endpoint or the existing Cron sweep also prune dead index entries), not blocking
+for this packet.
 
 ## Recommended Next Packet
 
