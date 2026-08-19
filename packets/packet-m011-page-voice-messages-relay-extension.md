@@ -204,7 +204,10 @@ paired device; worst case is a mis-tagged page-0 recording, no security
 implication) but a real, direct contradiction of this packet's own Deliverable
 #2 text. **Fixed same day**: `upload.js` now checks the raw query string before
 `Number()` coercion, rejecting when it's missing or empty/whitespace, rather
-than trusting the coerced value alone.
+than trusting the coerced value alone. **Fix confirmed live post-deploy**:
+`pageIndex=""` now correctly returns `400`; `pageIndex=0` (a legitimately valid
+first page) still correctly succeeds — the fix doesn't overcorrect into
+rejecting a real page-0 recording.
 
 **Non-blocking note, not fixed:** the `audio-pending:{deviceId}` index (from
 `packet-m009`) has no cleanup path for entries whose metadata expired unplayed
